@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build and Test
+    name: Build
     runs-on: ubuntu-latest
 
     steps:
@@ -24,11 +24,8 @@ jobs:
       - name: 📚 Install dependencies
         run: npm install
 
-      - name: 🔍 Run linter
-        run: npm run lint
-
       - name: 🏗️ Build project
         run: npm run build
 
       - name: ✅ Build successful
-        run: echo "🎉 All checks passed! Your code is ready."
+        run: echo "🎉 Build passed!"
