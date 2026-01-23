@@ -8,13 +8,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Plus, Save, ArrowLeft, MapPin, Zap, Sparkles, Bot, User,
   Send, Heart, Mountain, Utensils, Palette, Star, Ticket,
-  Play, Pause, Map as MapIcon, X, Calendar
+  Play, Pause, Map as MapIcon, X, Calendar, GripVertical, Loader2
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { usePOIToRoute, useNavigationState } from '@/hooks';
 import { routeService, openRouteService } from '@/services';
+import { InteractiveRouteMap } from '@/components/map/InteractiveRouteMap';
 import { getUserMembership } from '@/lib/featureFlags';
+import { firestoreService, authService } from '@/lib/firebaseConfig';
 import type { MembershipTier } from '@/types';
 
 // --- REMOVED CONTEXT IMPORT FOR SAFE MODE ---
@@ -29,11 +31,11 @@ const PERSONAS: Record<string, any> = {
     suggestionTitle: "Optimization Alert", suggestionText: "Traffic detected. Rerouting via Tesla Way saves 12m.",
     suggestionAction: "Apply Detour"
   },
-  guide: { 
+  guide: {
     id: 'guide', name: 'Travel Bestie', role: 'Friend',
     color: 'bg-pink-500', textColor: 'text-pink-500', borderColor: 'border-pink-200', bgSoft: 'bg-pink-50',
-    icon: Heart, greeting: "Omg, let's plan the perfect trip! 📸 I have so many ideas!",
-    suggestionTitle: "Hidden Gem Alert! ✨", suggestionText: "There is a secret waterfall just 10 mins off this route.",
+    icon: Heart, greeting: "Omg, let's plan the perfect trip! I have so many ideas!",
+    suggestionTitle: "Hidden Gem Alert!", suggestionText: "There is a secret waterfall just 10 mins off this route.",
     suggestionAction: "Add Waterfall"
   },
   ranger: {
@@ -47,7 +49,7 @@ const PERSONAS: Record<string, any> = {
     id: 'foodie', name: 'Flavor Scout', role: 'Connoisseur',
     color: 'bg-orange-500', textColor: 'text-orange-600', borderColor: 'border-orange-200', bgSoft: 'bg-orange-50',
     icon: Utensils, greeting: "Route plotting... searching for the best pie in the state.",
-    suggestionTitle: "Must-Try Diner 🥧", suggestionText: "Rated 4.9 stars. Famous for their cherry pie.",
+    suggestionTitle: "Must-Try Diner", suggestionText: "Rated 4.9 stars. Famous for their cherry pie.",
     suggestionAction: "Add Lunch"
   },
   artist: {
@@ -92,7 +94,7 @@ export function RoutePlanner() {
   const { toast } = useToast();
   const { getPendingPOI } = usePOIToRoute();
   const { getPendingNavigation, clearNavigation } = useNavigationState();
-  
+
   // --- MOCK PROFILE (Safe Mode) ---
   const userProfile = {
     preferences: {
@@ -103,14 +105,18 @@ export function RoutePlanner() {
   // --- STATE ---
   const [tripName, setTripName] = useState('My Iconic Trip');
   const [startTime, setStartTime] = useState('08:00'); // Global Departure
-  
-  // Waypoints State
+
+  // Waypoints State (with lat/lng for map display)
   const [waypoints, setWaypoints] = useState([
-    { id: 1, name: 'San Francisco, CA', time: '08:00', type: 'start', notes: 'Departing', battery: 100 },
-    { id: 2, name: 'Tracy Supercharger', time: '09:45', type: 'charge', notes: 'Charge to 90%', battery: 45 },
-    { id: 3, name: 'The Cozy Bean', time: '11:30', type: 'stop', notes: 'Lunch Stop', battery: 78 },
-    { id: 4, name: 'Yosemite Valley Lodge', time: '15:00', type: 'destination', notes: 'Arrival', battery: 32 }
+    { id: 1, name: 'San Francisco, CA', lat: 37.7749, lng: -122.4194, time: '08:00', type: 'start', notes: 'Departing', battery: 100 },
+    { id: 2, name: 'Tracy Supercharger', lat: 37.7396, lng: -121.4252, time: '09:45', type: 'charge', notes: 'Charge to 90%', battery: 45 },
+    { id: 3, name: 'The Cozy Bean', lat: 37.6618, lng: -120.9980, time: '11:30', type: 'stop', notes: 'Lunch Stop', battery: 78 },
+    { id: 4, name: 'Yosemite Valley Lodge', lat: 37.7459, lng: -119.5936, time: '15:00', type: 'destination', notes: 'Arrival', battery: 32 }
   ]);
+
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   // AI & Sim State
   const [activePersona, setActivePersona] = useState<string>('guide');
@@ -128,6 +134,7 @@ export function RoutePlanner() {
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const [routeData, setRouteData] = useState<any>(null);
   const [remainingQuota, setRemainingQuota] = useState(2000);
+  const [isSaving, setIsSaving] = useState(false);
 
   const buddy = PERSONAS[activePersona] || PERSONAS['guide'];
 
@@ -137,12 +144,18 @@ export function RoutePlanner() {
     let currentBattery = 100;
 
     return currentStops.map((stop, index) => {
+      // Update waypoint types based on position
+      let newType = stop.type;
+      if (index === 0) newType = 'start';
+      else if (index === currentStops.length - 1) newType = 'destination';
+      else if (stop.type === 'start' || stop.type === 'destination') newType = 'stop';
+
       if (index === 0) {
-        return { ...stop, time: start, battery: 100, notes: 'Departing' };
+        return { ...stop, type: newType, time: start, battery: 100, notes: 'Departing' };
       }
 
-      const travelTime = 105; 
-      const drain = 22;       
+      const travelTime = 105;
+      const drain = 22;
 
       currentTime = addMinutes(currentTime, travelTime);
       currentBattery = Math.max(0, currentBattery - drain);
@@ -150,21 +163,69 @@ export function RoutePlanner() {
       let autoNote = `Arrive ${currentBattery}%`;
 
       if (stop.type === 'charge') {
-        currentTime = addMinutes(currentTime, 45); 
-        currentBattery = 90; 
+        currentTime = addMinutes(currentTime, 45);
+        currentBattery = 90;
         autoNote = 'Charge to 90%';
-      } else if (stop.type === 'stop') {
-        currentTime = addMinutes(currentTime, 60); 
-        autoNote += ' • Break';
+      } else if (stop.type === 'stop' || stop.type === 'destination') {
+        currentTime = addMinutes(currentTime, 60);
+        autoNote += ' - Break';
       }
 
-      return { 
-        ...stop, 
-        time: currentTime, 
+      return {
+        ...stop,
+        type: newType,
+        time: currentTime,
         battery: currentBattery,
-        notes: stop.notes === 'New Stop' || stop.notes.includes('Arrive') ? autoNote : stop.notes
+        notes: stop.notes === 'New Stop' || stop.notes.includes('Arrive') || stop.notes === 'Departing' || stop.notes === 'Arrival' ? autoNote : stop.notes
       };
     });
+  };
+
+  // --- DRAG AND DROP HANDLERS ---
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index.toString());
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    setWaypoints(prev => {
+      const newWaypoints = [...prev];
+      const [draggedItem] = newWaypoints.splice(draggedIndex, 1);
+      newWaypoints.splice(dropIndex, 0, draggedItem);
+      return recalculateLogistics(newWaypoints, startTime);
+    });
+
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+
+    toast({
+      title: "Waypoint Reordered",
+      description: "Route has been recalculated.",
+    });
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   // --- EFFECTS ---
@@ -181,7 +242,7 @@ export function RoutePlanner() {
         setTripName(navData.routeName || 'My Iconic Trip');
 
         // Convert waypoints to route planner format
-        const formattedWaypoints = navData.waypoints.map((wp, index) => ({
+        const formattedWaypoints = navData.waypoints.map((wp: any, index: number) => ({
           id: index + 1,
           name: wp.name,
           lat: wp.lat,
@@ -199,13 +260,10 @@ export function RoutePlanner() {
           title: "Route Loaded",
           description: `${navData.routeName} is ready to plan.`,
         });
-
-        // Don't clear yet - keep for potential refresh
       }
 
       // Handle "resume" mode - existing trip from My Trips or Dashboard
       if (navData.mode === 'resume' && navData.tripId) {
-        // Load trip data by ID from tripService
         const loadTrip = async () => {
           try {
             const { tripService } = await import('@/services');
@@ -214,12 +272,11 @@ export function RoutePlanner() {
             if (trip) {
               setTripName(trip.name || 'Pacific Coast Highway');
 
-              // Convert checkPoints to waypoints format
-              const waypointsFromTrip = trip.checkPoints.map((checkpoint, index) => ({
+              const waypointsFromTrip = trip.checkPoints.map((checkpoint: any, index: number) => ({
                 id: index + 1,
                 name: checkpoint.location,
-                lat: index === 0 ? trip.startLocation.lat.toString() : '0',
-                lng: index === 0 ? trip.startLocation.lng.toString() : '0',
+                lat: index === 0 ? trip.startLocation.lat : 0,
+                lng: index === 0 ? trip.startLocation.lng : 0,
                 time: new Date(checkpoint.timestamp).toLocaleTimeString('en-US', {
                   hour: '2-digit',
                   minute: '2-digit',
@@ -256,39 +313,34 @@ export function RoutePlanner() {
   useEffect(() => {
     const pendingPOI = getPendingPOI();
     if (pendingPOI) {
-      // Add POI as a new waypoint
       const newWaypoint = {
         id: waypoints.length + 1,
         name: pendingPOI.name,
         lat: pendingPOI.lat,
         lng: pendingPOI.lng,
         time: '00:00',
-        type: pendingPOI.type === 'parking' ? 'stop' : 'stop',
+        type: 'stop',
         notes: 'Added from POI',
         battery: 50
       };
 
-      // Insert before the last waypoint (destination)
       const updatedWaypoints = [
         ...waypoints.slice(0, -1),
         newWaypoint,
         waypoints[waypoints.length - 1]
       ];
 
-      // Recalculate logistics
       const recalculated = recalculateLogistics(updatedWaypoints, startTime);
       setWaypoints(recalculated);
 
-      // Show confirmation toast
       toast({
         title: "POI Added to Route",
         description: `${pendingPOI.name} has been added to your route.`,
       });
     }
-  }, []); // Run once on mount
+  }, []);
 
   useEffect(() => {
-    // Local fallback instead of context
     if (userProfile?.preferences.avatarStyle && PERSONAS[userProfile.preferences.avatarStyle]) {
       setActivePersona(userProfile.preferences.avatarStyle);
     }
@@ -298,10 +350,8 @@ export function RoutePlanner() {
     setMessages([{ id: 'init', role: 'ai', text: buddy.greeting }]);
   }, [activePersona]);
 
-  // Initialize user tier and quota
   useEffect(() => {
-    // In production, get from auth context
-    const userId = 'test@example.com'; // Replace with actual authenticated user
+    const userId = 'test@example.com';
     const tier = getUserMembership(userId);
     setUserTier(tier);
     setRemainingQuota(openRouteService.getRemainingQuota());
@@ -315,23 +365,25 @@ export function RoutePlanner() {
       setIsCalculatingRoute(true);
 
       try {
-        // Extract coordinates from waypoints (simplified - uses mock coords for now)
-        const coords = waypoints.map(() => ({
-          lat: 37.7749 + Math.random() * 2,
-          lng: -122.4194 + Math.random() * 2,
-        }));
+        const coords = waypoints
+          .filter(wp => wp.lat && wp.lng)
+          .map(wp => ({
+            lat: wp.lat,
+            lng: wp.lng,
+          }));
 
-        const result = await routeService.calculateRoute(coords, 'test@example.com');
-        setRouteData(result);
+        if (coords.length >= 2) {
+          const result = await routeService.calculateRoute(coords, 'test@example.com');
+          setRouteData(result);
+        }
 
-        // Update remaining quota
         setRemainingQuota(openRouteService.getRemainingQuota());
       } catch (error) {
         console.error('Route calculation error:', error);
       } finally {
         setIsCalculatingRoute(false);
       }
-    }, 500); // Debounce 500ms
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [waypoints]);
@@ -344,13 +396,15 @@ export function RoutePlanner() {
 
   // --- ACTIONS ---
   const addWaypoint = () => {
-    const newStop = { 
-      id: Date.now(), 
-      name: '', 
-      time: '', 
-      type: 'stop', 
-      notes: 'New Stop', 
-      battery: 0 
+    const newStop = {
+      id: Date.now(),
+      name: '',
+      lat: undefined as number | undefined,
+      lng: undefined as number | undefined,
+      time: '',
+      type: 'stop',
+      notes: 'New Stop',
+      battery: 0
     };
     setWaypoints(prev => recalculateLogistics([...prev, newStop], startTime));
   };
@@ -359,7 +413,7 @@ export function RoutePlanner() {
     setWaypoints(prev => recalculateLogistics(prev.filter(wp => wp.id !== id), startTime));
   };
 
-  const updateWaypoint = (id: number, field: string, val: string) => {
+  const updateWaypoint = (id: number, field: string, val: any) => {
     setWaypoints(prev => {
       const updated = prev.map(wp => wp.id === id ? { ...wp, [field]: val } : wp);
       return updated;
@@ -369,7 +423,7 @@ export function RoutePlanner() {
   const handleAcceptSuggestion = () => {
     const newStopName = buddy.suggestionAction.replace("Add ", "") + " (AI Rec)";
     setWaypoints(prev => {
-      const newStop = { id: Date.now(), name: newStopName, type: 'highlight', time: '', notes: '', battery: 0 };
+      const newStop = { id: Date.now(), name: newStopName, lat: undefined as number | undefined, lng: undefined as number | undefined, type: 'highlight', time: '', notes: '', battery: 0 };
       let newList = [...prev];
       if (newList.length > 1) {
         newList.splice(newList.length - 1, 0, newStop);
@@ -382,21 +436,67 @@ export function RoutePlanner() {
     setMessages(prev => [...prev, { id: Date.now().toString(), role: 'ai', text: `Recalculated route! Added ${newStopName}.` }]);
   };
 
-  const saveTrip = () => {
-    const newTrip = {
-      id: `saved-${Date.now()}`,
-      name: tripName,
-      dates: 'Flexible Dates',
-      status: 'Planned',
-      days: 3,
-      stops: waypoints.length,
-      image: 'https://images.pexels.com/photos/1666021/pexels-photo-1666021.jpeg?auto=compress&cs=tinysrgb&w=800'
-    };
-    const existingData = localStorage.getItem('myTrips');
-    const trips = existingData ? JSON.parse(existingData) : [];
-    localStorage.setItem('myTrips', JSON.stringify([newTrip, ...trips]));
-    toast({ title: "Trip Saved!", description: "Your AI-assisted trip is ready." });
-    setTimeout(() => { window.location.href = '/trips'; }, 500);
+  // Save trip to Firebase Firestore
+  const saveTrip = async () => {
+    setIsSaving(true);
+
+    try {
+      const userId = authService.getUserId();
+      const startWaypoint = waypoints[0];
+      const endWaypoint = waypoints[waypoints.length - 1];
+
+      const tripData = {
+        userId,
+        name: tripName,
+        waypoints: waypoints.map(wp => ({
+          id: wp.id,
+          name: wp.name,
+          lat: wp.lat,
+          lng: wp.lng,
+          time: wp.time,
+          type: wp.type,
+          notes: wp.notes,
+          battery: wp.battery,
+        })),
+        totalDistance: routeData?.distance || 0,
+        totalDuration: routeData?.duration || 0,
+        startLocation: startWaypoint?.lat && startWaypoint?.lng ? {
+          lat: startWaypoint.lat,
+          lng: startWaypoint.lng,
+          name: startWaypoint.name,
+        } : undefined,
+        endLocation: endWaypoint?.lat && endWaypoint?.lng ? {
+          lat: endWaypoint.lat,
+          lng: endWaypoint.lng,
+          name: endWaypoint.name,
+        } : undefined,
+        status: 'planned' as const,
+      };
+
+      const tripId = await firestoreService.saveTrip(tripData);
+
+      toast({
+        title: "Trip Saved!",
+        description: authService.isAuthenticated()
+          ? "Your trip has been saved to your account."
+          : "Trip saved locally. Sign in to sync across devices.",
+      });
+
+      // Navigate to trips page
+      setTimeout(() => {
+        navigate('/trips');
+      }, 500);
+
+    } catch (error) {
+      console.error('[RoutePlanner] Error saving trip:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save trip. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSendMessage = (text: string) => {
@@ -408,6 +508,11 @@ export function RoutePlanner() {
       setMessages(prev => [...prev, { id: (Date.now()+1).toString(), role: 'ai', text: `I'm checking the map for "${text}"... Found a great spot!` }]);
       setIsTyping(false);
     }, 1200);
+  };
+
+  // Handle route calculation callback from map
+  const handleRouteCalculated = (routeInfo: { distance: number; duration: number }) => {
+    setRouteData(routeInfo);
   };
 
   // --- ANIMATION ---
@@ -430,16 +535,25 @@ export function RoutePlanner() {
 
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] animate-fade-in bg-slate-50">
-      
+
       {/* ---------------- COLUMN 1: THE MAP (LEFT) ---------------- */}
       <div className="flex-1 relative bg-slate-100 flex flex-col order-2 lg:order-1 h-[500px] lg:h-auto">
-        <Tabs defaultValue="simulation" className="flex-1 flex flex-col">
+        <Tabs defaultValue="map" className="flex-1 flex flex-col">
           <div className="absolute top-4 left-4 z-20">
             <TabsList className="bg-white/90 backdrop-blur shadow-sm border border-slate-200">
+              <TabsTrigger value="map" className="text-xs font-medium"><MapIcon className="h-3 w-3 mr-2" />Interactive Map</TabsTrigger>
               <TabsTrigger value="simulation" className="text-xs font-medium"><Sparkles className="h-3 w-3 mr-2" />AI Vision</TabsTrigger>
-              <TabsTrigger value="map" className="text-xs font-medium"><MapIcon className="h-3 w-3 mr-2" />Satellite</TabsTrigger>
             </TabsList>
           </div>
+
+          <TabsContent value="map" className="flex-1 m-0 p-0 h-full">
+             <InteractiveRouteMap
+               waypoints={waypoints}
+               onWaypointUpdate={updateWaypoint}
+               onRouteCalculated={handleRouteCalculated}
+               className="w-full h-full"
+             />
+          </TabsContent>
 
           <TabsContent value="simulation" className="flex-1 m-0 p-0 relative h-full">
              <div className="absolute inset-0 bg-slate-900 overflow-hidden">
@@ -466,23 +580,12 @@ export function RoutePlanner() {
                 })}
              </div>
           </TabsContent>
-
-          <TabsContent value="map" className="flex-1 m-0 p-0 h-full">
-             <iframe 
-               width="100%" 
-               height="100%" 
-               frameBorder="0" 
-               title="OpenStreetMap"
-               className="w-full h-full opacity-95 grayscale-[30%] contrast-125"
-               src="https://www.openstreetmap.org/export/embed.html?bbox=-119.65,34.00,-118.00,35.00&layer=mapnik"
-             />
-          </TabsContent>
         </Tabs>
       </div>
 
       {/* ---------------- COLUMN 2: THE SIDEBAR (RIGHT) ---------------- */}
       <div className="w-full lg:w-[420px] bg-white border-l border-slate-200 flex flex-col z-10 shadow-2xl order-1 lg:order-2">
-        
+
         {/* 1. Header & Persona */}
         <div className={`p-4 border-b border-slate-100 flex items-center justify-between ${buddy.bgSoft}`}>
            <div className="flex items-center gap-3">
@@ -523,7 +626,7 @@ export function RoutePlanner() {
               )}
               {routeData && !isCalculatingRoute && (
                 <div className="mt-2 text-[10px] text-blue-700">
-                  Route: {routeData.distance.toFixed(1)} km • {routeData.duration.toFixed(1)}h
+                  Route: {routeData.distance.toFixed(1)} km - {routeData.duration.toFixed(1)}h
                 </div>
               )}
             </CardContent>
@@ -542,7 +645,7 @@ export function RoutePlanner() {
                   className="h-6 text-[10px] px-2"
                   onClick={() => navigate('/pricing')}
                 >
-                  Upgrade ✨
+                  Upgrade
                 </Button>
               </div>
               <p className="text-[10px] text-gray-500 mt-1">
@@ -576,39 +679,57 @@ export function RoutePlanner() {
               {/* 3. LIVE ITINERARY */}
               <div>
                  <div className="space-y-3 mb-4">
-                    <Input 
-                      value={tripName} 
-                      onChange={(e) => setTripName(e.target.value)} 
+                    <Input
+                      value={tripName}
+                      onChange={(e) => setTripName(e.target.value)}
                       className="font-bold text-lg border-transparent hover:border-slate-200 focus:border-indigo-300 transition-all p-0 h-auto bg-transparent w-full text-slate-900 placeholder:text-slate-400"
                       placeholder="Name your trip..."
                     />
-                    
+
                     {/* START TIME CONTROLLER */}
                     <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-lg border border-slate-100">
                        <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-400 tracking-wider">
                           <Calendar className="h-3 w-3" /> Departure
                        </div>
-                       <Input 
-                          type="time" 
+                       <Input
+                          type="time"
                           value={startTime}
-                          onChange={(e) => handleStartTimeChange(e.target.value)} 
-                          className="w-24 h-7 text-xs font-bold bg-white border-slate-200 focus:border-indigo-300 cursor-pointer" 
+                          onChange={(e) => handleStartTimeChange(e.target.value)}
+                          className="w-24 h-7 text-xs font-bold bg-white border-slate-200 focus:border-indigo-300 cursor-pointer"
                        />
                        <Badge variant="outline" className="ml-auto text-[10px] font-normal bg-white text-slate-500 border-slate-200">
                           {waypoints.length} Stops
                        </Badge>
                     </div>
                  </div>
-                 
-                 {/* The Timeline List */}
+
+                 {/* The Timeline List with Drag and Drop */}
                  <div className="space-y-0 relative">
                     {waypoints.map((point, idx) => (
-                      <div key={point.id} className="relative flex gap-4 group pb-6 last:pb-0">
+                      <div
+                        key={point.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, idx)}
+                        onDragOver={(e) => handleDragOver(e, idx)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, idx)}
+                        onDragEnd={handleDragEnd}
+                        className={`relative flex gap-2 group pb-6 last:pb-0 cursor-move transition-all ${
+                          draggedIndex === idx ? 'opacity-50 scale-95' : ''
+                        } ${
+                          dragOverIndex === idx ? 'bg-indigo-50 rounded-lg -mx-2 px-2 py-2' : ''
+                        }`}
+                      >
+                        {/* Drag Handle */}
+                        <div className="mt-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <GripVertical className="h-4 w-4 text-slate-300" />
+                        </div>
+
                         {/* Connecting Line */}
                         {idx !== waypoints.length - 1 && (
-                           <div className="absolute left-[15px] top-8 bottom-0 w-[2px] bg-slate-100 group-hover:bg-slate-200 transition-colors" />
+                           <div className="absolute left-[35px] top-8 bottom-0 w-[2px] bg-slate-100 group-hover:bg-slate-200 transition-colors" />
                         )}
-                        
+
                         {/* Left Icon (The Timeline Dot) */}
                         <div className="mt-1 relative z-10 flex-shrink-0">
                            {point.type === 'charge' ? (
@@ -619,6 +740,14 @@ export function RoutePlanner() {
                               <div className="w-8 h-8 rounded-full bg-yellow-50 flex items-center justify-center text-yellow-600 border border-yellow-100 shadow-sm">
                                  <Sparkles className="h-3 w-3 fill-current" />
                               </div>
+                           ) : point.type === 'start' ? (
+                              <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-green-600 border border-green-100 shadow-sm">
+                                 <MapPin className="h-3 w-3" />
+                              </div>
+                           ) : point.type === 'destination' ? (
+                              <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-600 border border-red-100 shadow-sm">
+                                 <MapPin className="h-3 w-3" />
+                              </div>
                            ) : (
                               <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-slate-400 border border-slate-200 shadow-sm group-hover:border-slate-300">
                                  <MapPin className="h-3 w-3" />
@@ -628,7 +757,7 @@ export function RoutePlanner() {
 
                         {/* Middle Content */}
                         <div className="flex-1 min-w-0 pt-1.5">
-                           <input 
+                           <input
                              value={point.name}
                              onChange={(e) => updateWaypoint(point.id, 'name', e.target.value)}
                              className="block w-full font-semibold text-sm text-slate-900 bg-transparent border-none p-0 focus:ring-0 placeholder:text-slate-300 truncate"
@@ -641,7 +770,7 @@ export function RoutePlanner() {
                                   {point.battery}%
                                 </span>
                               )}
-                              <input 
+                              <input
                                 value={point.notes}
                                 onChange={(e) => updateWaypoint(point.id, 'notes', e.target.value)}
                                 className="block w-full text-xs text-slate-500 bg-transparent border-none p-0 focus:ring-0 placeholder:text-slate-300 truncate"
@@ -655,7 +784,7 @@ export function RoutePlanner() {
                            <span className="block w-16 text-right font-mono text-xs text-slate-500 bg-transparent border-none p-0">
                              {point.time}
                            </span>
-                           <button 
+                           <button
                              onClick={() => removeWaypoint(point.id)}
                              className="mt-1 text-[10px] text-red-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity uppercase font-bold tracking-wider"
                            >
@@ -673,8 +802,23 @@ export function RoutePlanner() {
               </div>
 
               {/* 4. Save Button */}
-              <Button size="lg" className={`w-full font-bold shadow-lg text-white ${buddy.color} hover:opacity-90 mt-4`} onClick={saveTrip}>
-                 <Save className="h-4 w-4 mr-2" /> Save & Start Trip
+              <Button
+                size="lg"
+                className={`w-full font-bold shadow-lg text-white ${buddy.color} hover:opacity-90 mt-4`}
+                onClick={saveTrip}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save & Start Trip
+                  </>
+                )}
               </Button>
 
               {/* 5. Chat History */}
@@ -701,8 +845,8 @@ export function RoutePlanner() {
         {/* 6. Chat Input */}
         <div className="p-4 bg-white border-t border-slate-200">
            <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(inputValue); }} className="flex gap-2">
-              <Input 
-                placeholder={`Ask ${buddy.name} for suggestions...`} 
+              <Input
+                placeholder={`Ask ${buddy.name} for suggestions...`}
                 className="bg-slate-50 border-slate-200 h-10 text-sm focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:ring-indigo-500"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}

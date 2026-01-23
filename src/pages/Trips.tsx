@@ -1,76 +1,218 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Calendar, 
-  MapPin, 
-  Clock, 
-  ArrowRight, 
-  MoreHorizontal, 
+import {
+  Calendar,
+  MapPin,
+  Clock,
+  ArrowRight,
+  MoreHorizontal,
   Car,
-  CheckCircle2
+  CheckCircle2,
+  Trash2,
+  Loader2,
+  Route
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-// Mock Data for Trips
-const mockTrips = {
-  active: [
-    {
-      id: 'trip-active-1',
-      name: 'Pacific Coast Road Trip',
-      dates: 'Oct 15 - Oct 22',
-      status: 'In Progress',
-      progress: 45,
-      currentLocation: 'Big Sur, CA',
-      image: 'https://images.unsplash.com/photo-1449034446853-66c86144b0ad?auto=format&fit=crop&q=80&w=1000'
-    }
-  ],
-  upcoming: [
-    {
-      id: 'trip-up-1',
-      name: 'Yosemite National Park',
-      dates: 'Nov 10 - Nov 14',
-      status: 'Planned',
-      days: 4,
-      stops: 8,
-      image: 'https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?auto=format&fit=crop&q=80&w=1000'
-    },
-    {
-      id: 'trip-up-2',
-      name: 'Grand Canyon Adventure',
-      dates: 'Dec 20 - Dec 28',
-      status: 'Draft',
-      days: 8,
-      stops: 12,
-      image: 'https://images.unsplash.com/photo-1474044159687-1ee9f03fd3f4?auto=format&fit=crop&q=80&w=1000'
-    }
-  ],
-  past: [
-    {
-      id: 'trip-past-1',
-      name: 'Napa Valley Weekend',
-      dates: 'Sep 05 - Sep 07',
-      status: 'Completed',
-      miles: 120,
-      rating: 5,
-      image: 'https://images.unsplash.com/photo-1516570161426-3843d11d7352?auto=format&fit=crop&q=80&w=1000'
-    },
-    {
-      id: 'trip-past-2',
-      name: 'Lake Tahoe Ski Trip',
-      dates: 'Jan 15 - Jan 20',
-      status: 'Completed',
-      miles: 450,
-      rating: 4,
-      image: 'https://images.unsplash.com/photo-1548782062-1262d083b45a?auto=format&fit=crop&q=80&w=1000'
-    }
-  ]
-};
+import { firestoreService, authService, SavedTrip } from '@/lib/firebaseConfig';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export function Trips() {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [trips, setTrips] = useState<SavedTrip[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [deletingTripId, setDeletingTripId] = useState<string | null>(null);
+
+  // Load trips from Firestore on mount
+  useEffect(() => {
+    const loadTrips = async () => {
+      setIsLoading(true);
+      try {
+        const userId = authService.getUserId();
+        const userTrips = await firestoreService.getUserTrips(userId);
+        setTrips(userTrips);
+      } catch (error) {
+        console.error('Error loading trips:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load trips. Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTrips();
+  }, [toast]);
+
+  // Delete a trip
+  const handleDeleteTrip = async (tripId: string) => {
+    setDeletingTripId(tripId);
+    try {
+      if (tripId.startsWith('local-')) {
+        firestoreService.deleteFromLocalStorage(tripId);
+      } else {
+        await firestoreService.deleteTrip(tripId);
+      }
+      setTrips((prev) => prev.filter((t) => t.id !== tripId));
+      toast({
+        title: 'Trip Deleted',
+        description: 'Your trip has been removed.',
+      });
+    } catch (error) {
+      console.error('Error deleting trip:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete trip. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingTripId(null);
+    }
+  };
+
+  // Categorize trips by status
+  const activeTrips = trips.filter((t) => t.status === 'active');
+  const plannedTrips = trips.filter((t) => t.status === 'planned');
+  const completedTrips = trips.filter((t) => t.status === 'completed');
+
+  // Format distance for display
+  const formatDistance = (meters?: number) => {
+    if (!meters) return 'N/A';
+    const miles = meters / 1609.34;
+    return `${miles.toFixed(0)} mi`;
+  };
+
+  // Format duration for display
+  const formatDuration = (seconds?: number) => {
+    if (!seconds) return 'N/A';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  };
+
+  // Format date for display
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return 'Unknown date';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  // Render a trip card
+  const renderTripCard = (trip: SavedTrip, showDelete = true) => {
+    const startLocation = trip.startLocation?.name || trip.waypoints?.[0]?.name || 'Start';
+    const endLocation = trip.endLocation?.name || trip.waypoints?.[trip.waypoints.length - 1]?.name || 'End';
+
+    return (
+      <Card key={trip.id} className="group hover:shadow-lg transition-all">
+        <CardContent className="p-5">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <h3 className="text-xl font-bold mb-2">{trip.name}</h3>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  {formatDate(trip.createdAt)}
+                </div>
+                <div className="flex items-center">
+                  <MapPin className="h-4 w-4 mr-2" />
+                  {startLocation} → {endLocation}
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="flex items-center">
+                    <Route className="h-4 w-4 mr-1" />
+                    {formatDistance(trip.totalDistance)}
+                  </span>
+                  <span className="flex items-center">
+                    <Clock className="h-4 w-4 mr-1" />
+                    {formatDuration(trip.totalDuration)}
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  <Car className="h-4 w-4 mr-2" />
+                  {trip.waypoints?.length || 0} stops
+                </div>
+              </div>
+            </div>
+            <Badge
+              variant={trip.status === 'active' ? 'default' : trip.status === 'completed' ? 'secondary' : 'outline'}
+              className={trip.status === 'active' ? 'bg-green-500' : ''}
+            >
+              {trip.status === 'active' ? 'Active' : trip.status === 'completed' ? 'Completed' : 'Planned'}
+            </Badge>
+          </div>
+
+          <div className="mt-4 flex justify-between items-center">
+            <Button
+              variant="outline"
+              className="flex-1 mr-2 group-hover:bg-primary group-hover:text-primary-foreground"
+              onClick={() => navigate(`/plan?tripId=${trip.id}`)}
+            >
+              View Details
+            </Button>
+            {showDelete && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                    {deletingTripId === trip.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Trip</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete "{trip.name}"? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={() => handleDeleteTrip(trip.id!)}
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Empty state component
+  const EmptyState = ({ title, description }: { title: string; description: string }) => (
+    <div className="text-center py-12 bg-muted/20 rounded-lg">
+      <Car className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+      <h3 className="text-lg font-medium">{title}</h3>
+      <p className="text-muted-foreground">{description}</p>
+    </div>
+  );
 
   return (
     <div className="space-y-6 animate-fade-in max-w-6xl mx-auto">
@@ -85,113 +227,68 @@ export function Trips() {
         </Button>
       </div>
 
-      <Tabs defaultValue="active" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-[400px]">
-          <TabsTrigger value="active">Active</TabsTrigger>
-          <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-          <TabsTrigger value="past">History</TabsTrigger>
-        </TabsList>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-3 text-muted-foreground">Loading your trips...</span>
+        </div>
+      ) : (
+        <Tabs defaultValue="planned" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 max-w-[400px]">
+            <TabsTrigger value="active">
+              Active {activeTrips.length > 0 && `(${activeTrips.length})`}
+            </TabsTrigger>
+            <TabsTrigger value="planned">
+              Planned {plannedTrips.length > 0 && `(${plannedTrips.length})`}
+            </TabsTrigger>
+            <TabsTrigger value="completed">
+              History {completedTrips.length > 0 && `(${completedTrips.length})`}
+            </TabsTrigger>
+          </TabsList>
 
-        {/* ACTIVE TRIPS */}
-        <TabsContent value="active" className="mt-6">
-          {mockTrips.active.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6">
-              {mockTrips.active.map((trip) => (
-                <Card key={trip.id} className="border-l-4 border-l-green-500 overflow-hidden">
-                  <div className="flex flex-col md:flex-row">
-                    <div className="md:w-64 h-48 md:h-auto relative">
-                      <img src={trip.image} alt={trip.name} className="w-full h-full object-cover" />
-                      <Badge className="absolute top-2 right-2 bg-green-500 animate-pulse">Live</Badge>
-                    </div>
-                    <CardContent className="flex-1 p-6">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="text-2xl font-bold">{trip.name}</h3>
-                          <div className="flex items-center text-muted-foreground mt-2 space-x-4">
-                            <span className="flex items-center"><Calendar className="h-4 w-4 mr-1" /> {trip.dates}</span>
-                            <span className="flex items-center"><MapPin className="h-4 w-4 mr-1" /> {trip.currentLocation}</span>
-                          </div>
-                        </div>
-                        <Button variant="outline" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
-                      </div>
-                      
-                      <div className="mt-6">
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="font-medium">Trip Progress</span>
-                          <span>{trip.progress}%</span>
-                        </div>
-                        <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                          <div className="h-full bg-green-500 transition-all duration-1000" style={{ width: `${trip.progress}%` }} />
-                        </div>
-                      </div>
+          {/* ACTIVE TRIPS */}
+          <TabsContent value="active" className="mt-6">
+            {activeTrips.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {activeTrips.map((trip) => renderTripCard(trip))}
+              </div>
+            ) : (
+              <EmptyState
+                title="No active trips"
+                description="Ready to hit the road? Start a new journey!"
+              />
+            )}
+          </TabsContent>
 
-                      <div className="mt-6 flex justify-end">
-                        <Button onClick={() => navigate('/')}>
-                          Resume Navigation <ArrowRight className="h-4 w-4 ml-2" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-muted/20 rounded-lg">
-              <Car className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <h3 className="text-lg font-medium">No active trips</h3>
-              <p className="text-muted-foreground">Ready to hit the road? Start a new journey!</p>
-            </div>
-          )}
-        </TabsContent>
+          {/* PLANNED TRIPS */}
+          <TabsContent value="planned" className="mt-6">
+            {plannedTrips.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {plannedTrips.map((trip) => renderTripCard(trip))}
+              </div>
+            ) : (
+              <EmptyState
+                title="No planned trips"
+                description="Plan your next adventure to see it here!"
+              />
+            )}
+          </TabsContent>
 
-        {/* UPCOMING TRIPS */}
-        <TabsContent value="upcoming" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {mockTrips.upcoming.map((trip) => (
-              <Card key={trip.id} className="group hover:shadow-lg transition-all cursor-pointer">
-                <div className="h-48 relative overflow-hidden rounded-t-lg">
-                  <img src={trip.image} alt={trip.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  <Badge variant="secondary" className="absolute top-2 right-2 backdrop-blur-md bg-white/50">{trip.status}</Badge>
-                </div>
-                <CardContent className="p-5">
-                  <h3 className="text-xl font-bold mb-2">{trip.name}</h3>
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    <div className="flex items-center"><Calendar className="h-4 w-4 mr-2" /> {trip.dates}</div>
-                    <div className="flex items-center"><Clock className="h-4 w-4 mr-2" /> {trip.days} Days • {trip.stops} Stops</div>
-                  </div>
-                  <Button variant="outline" className="w-full mt-4 group-hover:bg-primary group-hover:text-primary-foreground">View Itinerary</Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        {/* PAST TRIPS */}
-        <TabsContent value="past" className="mt-6">
-          <div className="space-y-4">
-            {mockTrips.past.map((trip) => (
-              <Card key={trip.id} className="flex flex-col sm:flex-row items-center p-4 gap-4 hover:bg-muted/50 transition-colors">
-                 <div className="w-full sm:w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
-                   <img src={trip.image} alt={trip.name} className="w-full h-full object-cover" />
-                 </div>
-                 <div className="flex-1 text-center sm:text-left">
-                   <h3 className="font-bold text-lg">{trip.name}</h3>
-                   <p className="text-sm text-muted-foreground">{trip.dates}</p>
-                 </div>
-                 <div className="flex items-center gap-4">
-                   <div className="text-right hidden sm:block">
-                     <p className="text-sm font-medium">{trip.miles} miles</p>
-                     <p className="text-xs text-muted-foreground">Completed</p>
-                   </div>
-                   <Badge variant="outline" className="h-8 w-8 rounded-full p-0 flex items-center justify-center border-green-500 text-green-600">
-                     <CheckCircle2 className="h-4 w-4" />
-                   </Badge>
-                 </div>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
+          {/* COMPLETED TRIPS */}
+          <TabsContent value="completed" className="mt-6">
+            {completedTrips.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {completedTrips.map((trip) => renderTripCard(trip))}
+              </div>
+            ) : (
+              <EmptyState
+                title="No completed trips"
+                description="Completed trips will appear here."
+              />
+            )}
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 }
@@ -199,10 +296,10 @@ export function Trips() {
 // Simple Plus Icon component to avoid import errors if lucide version varies
 function PlusIcon({ className }: { className?: string }) {
   return (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" height="24" viewBox="0 0 24 24" 
-      fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" 
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24" height="24" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
       className={className}
     >
       <path d="M5 12h14" />
