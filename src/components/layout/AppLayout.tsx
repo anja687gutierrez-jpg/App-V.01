@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { useIsMobile, useGeolocation } from '@/hooks';
 import { weatherService, type WeatherData } from '@/services/weatherService';
+import { TravelBestie } from '@/components/ai/TravelBestie';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -55,19 +56,19 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <div className="min-h-screen bg-background flex overflow-hidden">
       {!isMobile && (
-        <Sidebar 
-          isCollapsed={isCollapsed} 
+        <Sidebar
+          isCollapsed={isCollapsed}
           onToggleCollapse={toggleCollapsed}
         />
       )}
-      
+
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <Header
           onMenuClick={isMobile ? toggleSidebar : toggleCollapsed}
           showMenuButton={isMobile}
           weather={weather}
         />
-        
+
         <main className="flex-1 overflow-auto p-6">
           {children}
         </main>
@@ -76,9 +77,9 @@ export function AppLayout({ children }: AppLayoutProps) {
       {/* Mobile sidebar overlay */}
       {isMobile && sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div 
-            className="fixed inset-0 bg-black/50" 
-            onClick={closeSidebar} 
+          <div
+            className="fixed inset-0 bg-black/50"
+            onClick={closeSidebar}
           />
           <div className="fixed inset-y-0 left-0 w-64 bg-card border-r flex flex-col">
             <div className="flex items-center justify-between p-4 border-b">
@@ -92,7 +93,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               </Button>
             </div>
             <div className="flex-1 overflow-y-auto">
-              <Sidebar 
+              <Sidebar
                 isCollapsed={false}
                 onClose={closeSidebar}
               />
@@ -100,6 +101,9 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
         </div>
       )}
+
+      {/* AI Travel Bestie Chat Widget */}
+      <TravelBestie />
     </div>
   );
 }

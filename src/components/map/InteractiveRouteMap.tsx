@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import {
   Zap
 } from 'lucide-react';
 import { openRouteService } from '@/services';
+import { POIMarkers } from './POIMarkers';
 
 // Type declarations for Leaflet (loaded via CDN)
 declare global {
@@ -42,6 +43,8 @@ interface InteractiveRouteMapProps {
   waypoints: Waypoint[];
   onWaypointUpdate: (id: number, field: string, value: any) => void;
   onRouteCalculated?: (routeInfo: RouteInfo) => void;
+  onAddPOIToRoute?: (poi: { name: string; lat: number; lng: number; type: string }) => void;
+  showPOIs?: boolean;
   className?: string;
 }
 
@@ -77,6 +80,8 @@ export function InteractiveRouteMap({
   waypoints,
   onWaypointUpdate,
   onRouteCalculated,
+  onAddPOIToRoute,
+  showPOIs = true,
   className = ''
 }: InteractiveRouteMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -92,6 +97,17 @@ export function InteractiveRouteMap({
   const [activeSearchField, setActiveSearchField] = useState<'start' | 'end' | null>(null);
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
+
+  // Calculate route center for POI search
+  const routeCenter = useMemo(() => {
+    const validWaypoints = waypoints.filter(wp => wp.lat && wp.lng);
+    if (validWaypoints.length === 0) return undefined;
+
+    const avgLat = validWaypoints.reduce((sum, wp) => sum + wp.lat!, 0) / validWaypoints.length;
+    const avgLng = validWaypoints.reduce((sum, wp) => sum + wp.lng!, 0) / validWaypoints.length;
+
+    return { lat: avgLat, lng: avgLng };
+  }, [waypoints]);
 
   // Initialize map
   useEffect(() => {
@@ -215,11 +231,30 @@ export function InteractiveRouteMap({
       markersRef.current.push(marker);
     });
 
-    // Fit bounds to show all markers
-    if (validWaypoints.length > 0) {
-      const bounds = L.latLngBounds(validWaypoints.map(wp => [wp.lat!, wp.lng!]));
-      if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [50, 50] });
+    // Fit bounds to show all markers with robust validation
+    if (validWaypoints.length === 1) {
+      // Single waypoint - use setView instead of fitBounds
+      const wp = validWaypoints[0];
+      if (wp.lat && wp.lng && isFinite(wp.lat) && isFinite(wp.lng)) {
+        map.setView([wp.lat, wp.lng], 10);
+      }
+    } else if (validWaypoints.length > 1) {
+      // Multiple waypoints - validate all coordinates before creating bounds
+      const validCoords = validWaypoints
+        .filter(wp => wp.lat && wp.lng && isFinite(wp.lat) && isFinite(wp.lng))
+        .map(wp => [wp.lat!, wp.lng!] as [number, number]);
+
+      if (validCoords.length >= 2) {
+        try {
+          const bounds = L.latLngBounds(validCoords);
+          if (bounds && bounds.isValid() && bounds.getNorthEast() && bounds.getSouthWest()) {
+            map.fitBounds(bounds, { padding: [50, 50] });
+          }
+        } catch (error) {
+          console.warn('[InteractiveRouteMap] Failed to fit bounds:', error);
+        }
+      } else if (validCoords.length === 1) {
+        map.setView(validCoords[0], 10);
       }
     }
 
@@ -523,6 +558,16 @@ export function InteractiveRouteMap({
         </Card>
       )}
 
+      {/* POI Markers with Filter */}
+      {showPOIs && isMapReady && routeCenter && (
+        <POIMarkers
+          mapRef={mapRef}
+          center={routeCenter}
+          radiusKm={50}
+          onAddToRoute={onAddPOIToRoute}
+        />
+      )}
+
       {/* Map Container */}
       <div
         ref={mapContainerRef}
@@ -560,6 +605,10 @@ export function InteractiveRouteMap({
       {/* Custom Marker Styles */}
       <style>{`
         .custom-marker {
+          background: transparent !important;
+          border: none !important;
+        }
+        .poi-marker {
           background: transparent !important;
           border: none !important;
         }
