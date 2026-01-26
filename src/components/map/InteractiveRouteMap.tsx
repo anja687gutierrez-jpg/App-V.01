@@ -218,7 +218,9 @@ export function InteractiveRouteMap({
     // Fit bounds to show all markers
     if (validWaypoints.length > 0) {
       const bounds = L.latLngBounds(validWaypoints.map(wp => [wp.lat!, wp.lng!]));
-      map.fitBounds(bounds, { padding: [50, 50] });
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [50, 50] });
+      }
     }
 
   }, [waypoints, isMapReady, onWaypointUpdate]);
