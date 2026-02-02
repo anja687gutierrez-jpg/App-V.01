@@ -37,6 +37,8 @@ VITE_FIREBASE_MESSAGING_SENDER_ID
 VITE_FIREBASE_APP_ID
 ```
 
+**Note:** `.env.local` is gitignored. For new setup, get values from Firebase Console → Project Settings → Your Apps → Web App.
+
 ## Development
 
 ```bash
