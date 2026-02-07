@@ -1,4 +1,7 @@
-# CLAUDE.md - Tour Route Planner
+# CLAUDE.md - Tour Route Planner (App-V.01)
+
+**Location:** `~/App-V.01/`
+**Archived Original:** `Google Drive/Business/Archives/App-V.01-original-2026-02-01/`
 
 ## Project Overview
 
@@ -8,25 +11,55 @@ React/TypeScript app for tour route planning and logistics. Uses Firebase for au
 
 - **Frontend:** React 18, TypeScript, Vite
 - **Styling:** Tailwind CSS, shadcn/ui
-- **Backend:** Firebase (Firestore, Auth)
+- **Backend:** Firebase (Firestore, Auth) - Direct client access
 - **APIs:** OpenRouteService, Weather API
 
 ## Firebase Configuration
 
 **Project ID:** `pathfinding-america-ag`
+**Plan:** Spark (free tier)
 **Console:** https://console.firebase.google.com/project/pathfinding-america-ag
 
+### Architecture: Hybrid (Direct Firestore)
+
+The app uses **direct Firestore calls** from the React frontend instead of Cloud Functions. This works on the free Spark plan.
+
+```
+React App → Firebase SDK → Firestore
+                ↓
+        Security Rules enforce access
+```
+
+**Why this approach:**
+- Cloud Functions require Blaze (pay-as-you-go) plan
+- Direct Firestore with security rules is equally secure
+- Reduces latency (no function cold starts)
+- `firebase-backend/` is preserved for future Blaze upgrade
+
 ### Collections
-- `trips` - User trip data (filtered by `userId`)
-- `users/{userId}` - User profiles and settings
+
+| Collection | Access | Description |
+|------------|--------|-------------|
+| `trips` | User-scoped | Trip data (filtered by `userId`) |
+| `users/{userId}` | User-scoped | User profiles and settings |
+| `routes` | Public read | Static route catalog |
+| `pois` | Public read | Points of interest catalog |
 
 ### Security Rules
+
 Located in `firestore.rules`. Deploy with:
 ```bash
 firebase deploy --only firestore:rules --project pathfinding-america-ag
 ```
 
+**Rule summary:**
+- `trips` - Only owner can read/write (checks `userId` field)
+- `users/{userId}` - Only that user can read/write
+- `routes`, `pois` - Anyone can read, no one can write
+- Everything else - Denied
+
 ### Environment Variables
+
 Firebase config is in `.env.local`:
 ```
 VITE_FIREBASE_API_KEY
@@ -50,15 +83,44 @@ npm run test      # Run Vitest tests
 
 ## Key Files
 
-- `src/lib/firebaseConfig.ts` - Firebase initialization & Firestore service
-- `src/lib/firebase.ts` - Cloud Functions helpers
-- `firebase-backend/` - Cloud Functions (TypeScript)
-- `firestore.rules` - Firestore security rules
-- `firestore.indexes.json` - Firestore indexes
+| File | Purpose |
+|------|---------|
+| `src/lib/firebaseConfig.ts` | Firebase init, `firestoreService` (direct Firestore calls) |
+| `src/lib/firebase.ts` | Cloud Functions helpers (unused on Spark plan) |
+| `firebase-backend/` | Cloud Functions code (ready for Blaze upgrade) |
+| `firestore.rules` | Security rules (deployed) |
+| `firestore.indexes.json` | Firestore indexes |
+
+### firestoreService Methods
+
+```typescript
+firestoreService.saveTrip(trip)        // Create trip
+firestoreService.getUserTrips(userId)  // Get user's trips
+firestoreService.getTripById(tripId)   // Get single trip
+firestoreService.updateTrip(id, data)  // Update trip
+firestoreService.deleteTrip(tripId)    // Delete trip
+firestoreService.getRoutes()           // Get routes (cached 1 year)
+firestoreService.getPOIs()             // Get POIs (cached 1 year)
+```
 
 ## Data Flow
 
 1. User authenticates via Firebase Auth
-2. Trips saved to Firestore with `userId` field
+2. `firestoreService` calls Firestore directly using Firebase SDK
 3. Security rules enforce user can only access own data
-4. Falls back to localStorage when offline/unauthenticated
+4. Routes/POIs cached in localStorage for 1 year
+5. Falls back to localStorage when offline/unauthenticated
+
+## Future: Upgrading to Blaze
+
+If you need Cloud Functions later (e.g., for server-side weather API, webhooks):
+
+1. Upgrade project to Blaze plan in Firebase Console
+2. Set budget alert at $1 to prevent surprises
+3. Deploy functions: `cd firebase-backend && npm run deploy`
+4. Update frontend to use `callFirebaseFunction()` from `firebase.ts`
+
+The `firebase-backend/` code includes:
+- Token-based auth verification
+- DEV_MODE for demo users (`X-Demo-User` header)
+- Rate-limited weather endpoint with caching

@@ -209,6 +209,78 @@ export const firestoreService = {
     const filtered = trips.filter((t: SavedTrip) => t.id !== tripId);
     localStorage.setItem('myTrips', JSON.stringify(filtered));
   },
+
+  /**
+   * Get all routes (public catalog data)
+   */
+  async getRoutes(): Promise<any[]> {
+    try {
+      // Check cache first (1 year TTL)
+      const cached = localStorage.getItem('routes_cache');
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < 365 * 24 * 60 * 60 * 1000) {
+          console.log('[Firestore] Routes served from cache');
+          return data;
+        }
+      }
+
+      const routesRef = collection(db, 'routes');
+      const snapshot = await getDocs(routesRef);
+      const routes = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      // Cache for 1 year
+      localStorage.setItem('routes_cache', JSON.stringify({
+        data: routes,
+        timestamp: Date.now(),
+      }));
+
+      console.log('[Firestore] Routes fetched:', routes.length);
+      return routes;
+    } catch (error) {
+      console.error('[Firestore] Error fetching routes:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Get all POIs (public catalog data)
+   */
+  async getPOIs(): Promise<any[]> {
+    try {
+      // Check cache first (1 year TTL)
+      const cached = localStorage.getItem('pois_cache');
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < 365 * 24 * 60 * 60 * 1000) {
+          console.log('[Firestore] POIs served from cache');
+          return data;
+        }
+      }
+
+      const poisRef = collection(db, 'pois');
+      const snapshot = await getDocs(poisRef);
+      const pois = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      // Cache for 1 year
+      localStorage.setItem('pois_cache', JSON.stringify({
+        data: pois,
+        timestamp: Date.now(),
+      }));
+
+      console.log('[Firestore] POIs fetched:', pois.length);
+      return pois;
+    } catch (error) {
+      console.error('[Firestore] Error fetching POIs:', error);
+      return [];
+    }
+  },
 };
 
 // Auth helper

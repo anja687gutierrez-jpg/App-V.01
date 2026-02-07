@@ -30,6 +30,18 @@ service cloud.firestore {
       }
     }
 
+    // Routes - public catalog data (read-only)
+    match /routes/{routeId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // POIs - public catalog data (read-only)
+    match /pois/{poiId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Deny everything else by default
     match /{document=**} {
       allow read, write: if false;
