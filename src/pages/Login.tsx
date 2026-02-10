@@ -60,7 +60,7 @@ export function Login() {
           <div className="mx-auto w-14 h-14 bg-primary rounded-2xl flex items-center justify-center mb-4 shadow-lg">
             <Compass className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Iconic Pathways</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Iconic Pathways™</h1>
           <p className="text-sm text-slate-500 mt-1">Sign in to plan your next adventure</p>
         </CardHeader>
         <CardContent className="pt-6 pb-8 px-8">
