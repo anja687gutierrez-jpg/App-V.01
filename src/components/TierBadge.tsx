@@ -37,6 +37,7 @@ const TIER_CONFIG = {
       '10 AI messages per trip',
     ],
     description: 'Perfect for casual travelers testing the app',
+    price: 'Free',
   },
   basic: {
     name: 'Basic Explorer',
@@ -122,6 +123,7 @@ const TIER_CONFIG = {
       'Priority development features',
     ],
     description: 'Development & testing access',
+    price: 'Internal',
   },
 };
 

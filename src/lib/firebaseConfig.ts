@@ -95,7 +95,6 @@ export const firestoreService = {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
-      console.log('[Firestore] Trip saved with ID:', docRef.id);
       return docRef.id;
     } catch (error) {
       console.error('[Firestore] Error saving trip:', error);
@@ -155,7 +154,6 @@ export const firestoreService = {
         ...updates,
         updatedAt: serverTimestamp(),
       });
-      console.log('[Firestore] Trip updated:', tripId);
     } catch (error) {
       console.error('[Firestore] Error updating trip:', error);
       throw error;
@@ -169,7 +167,6 @@ export const firestoreService = {
     try {
       const tripRef = doc(db, 'trips', tripId);
       await deleteDoc(tripRef);
-      console.log('[Firestore] Trip deleted:', tripId);
     } catch (error) {
       console.error('[Firestore] Error deleting trip:', error);
       throw error;
@@ -191,7 +188,6 @@ export const firestoreService = {
     trips.unshift(savedTrip);
     localStorage.setItem('myTrips', JSON.stringify(trips));
 
-    console.log('[LocalStorage] Trip saved with ID:', id);
     return id;
   },
 
@@ -208,6 +204,74 @@ export const firestoreService = {
     const trips = JSON.parse(existingData);
     const filtered = trips.filter((t: SavedTrip) => t.id !== tripId);
     localStorage.setItem('myTrips', JSON.stringify(filtered));
+  },
+
+  /**
+   * Get all routes (public catalog data)
+   */
+  async getRoutes(): Promise<any[]> {
+    try {
+      // Check cache first (1 year TTL)
+      const cached = localStorage.getItem('routes_cache');
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < 365 * 24 * 60 * 60 * 1000) {
+          return data;
+        }
+      }
+
+      const routesRef = collection(db, 'routes');
+      const snapshot = await getDocs(routesRef);
+      const routes = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      // Cache for 1 year
+      localStorage.setItem('routes_cache', JSON.stringify({
+        data: routes,
+        timestamp: Date.now(),
+      }));
+
+      return routes;
+    } catch (error) {
+      console.error('[Firestore] Error fetching routes:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Get all POIs (public catalog data)
+   */
+  async getPOIs(): Promise<any[]> {
+    try {
+      // Check cache first (1 year TTL)
+      const cached = localStorage.getItem('pois_cache');
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < 365 * 24 * 60 * 60 * 1000) {
+          return data;
+        }
+      }
+
+      const poisRef = collection(db, 'pois');
+      const snapshot = await getDocs(poisRef);
+      const pois = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      // Cache for 1 year
+      localStorage.setItem('pois_cache', JSON.stringify({
+        data: pois,
+        timestamp: Date.now(),
+      }));
+
+      return pois;
+    } catch (error) {
+      console.error('[Firestore] Error fetching POIs:', error);
+      return [];
+    }
   },
 };
 

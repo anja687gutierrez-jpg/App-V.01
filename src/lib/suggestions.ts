@@ -3,7 +3,6 @@ import { getInteractionHistory } from './learning';
 
 // --- Placeholder for a real AI API call ---
 async function generateAISuggestions(preferences: TourPreferences): Promise<Partial<Suggestion>[]> {
-  console.log('Generating AI suggestions for preferences:', preferences);
   // In a real app, this would call an AI model (e.g., OpenAI, Gemini)
   // The model would receive the user's preferences and return a list of suggestion ideas.
   await new Promise(resolve => setTimeout(resolve, 1200)); // Simulate network delay
@@ -24,7 +23,6 @@ async function generateAISuggestions(preferences: TourPreferences): Promise<Part
 
 // --- Placeholder for a real Location Search API (e.g., Google Places) ---
 async function searchPlaces(query: string): Promise<any> {
-  console.log(`Searching for place: ${query}`);
   // In a real app, this would call a service like Google Places API.
   // IMPORTANT: This would require an API key, which should be handled securely.
   await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
@@ -40,7 +38,6 @@ async function searchPlaces(query: string): Promise<any> {
 
 // --- NEW: Placeholder for Hidden Gem AI call ---
 async function findHiddenGems(preferences: TourPreferences): Promise<Partial<Suggestion>[]> {
-  console.log('Finding hidden gems for preferences:', preferences);
   // This simulates a more specific AI call to find "off-the-beaten-path" locations.
   await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
 

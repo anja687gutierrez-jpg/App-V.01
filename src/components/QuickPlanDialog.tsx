@@ -151,8 +151,6 @@ export function QuickPlanDialog({ trigger, onRouteCreated }: QuickPlanDialogProp
         updatedAt: new Date().toISOString(),
       }));
 
-      console.log('Mock POIs created:', samplePois);
-
       toast({
         title: 'Route Created! 🎉',
         description: `Your ${routeName} route is ready. Opening route planner...`,

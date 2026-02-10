@@ -60,7 +60,7 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse, onClose }: Side
                 <Compass className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-sidebar-foreground">Iconic Pathways</h1>
+                <h1 className="text-lg font-semibold text-sidebar-foreground">Iconic Pathways™</h1>
               </div>
             </div>
           )}

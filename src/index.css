@@ -111,6 +111,34 @@
   }
 }
 
+/* --- Mobile Responsiveness --- */
+@layer utilities {
+  /* Touch-friendly targets (44px minimum) */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Safe area for mobile devices */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 1rem);
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Better mobile text sizing */
+  .mobile-text-balance {
+    text-wrap: balance;
+  }
+}
+
 /* --- Animations --- */
 .animate-fade-in {
   animation: fadeIn 0.3s ease-in-out;
@@ -130,6 +158,43 @@
   0% { left: -100%; }
   20% { left: 150%; }
   100% { left: 150%; }
+}
+
+/* --- Smooth Transitions & Animations --- */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
 }
 
 /* --- Surprise Me Button Styling --- */
@@ -173,6 +238,40 @@
   animation: shimmer-effect 3.5s infinite;
 }
 
+/* --- Card Hover Effects --- */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Button Focus States for Accessibility --- */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* --- Loading Skeleton --- */
+.skeleton {
+  background: linear-gradient(90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted-foreground) / 0.1) 50%,
+    hsl(var(--muted)) 100%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* --- Toast Notification Container & Items --- */
 .toast-portal {
   position: fixed;
@@ -206,4 +305,91 @@
   font-size: 0.9rem;
   line-height: 1.4;
   opacity: 0.95;
+}
+
+/* --- Mobile-specific adjustments --- */
+@media (max-width: 640px) {
+  /* Reduce padding on mobile */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Ensure cards stack properly */
+  .grid {
+    gap: 1rem;
+  }
+
+  /* Better touch scrolling */
+  .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Smaller hero text on mobile */
+  .hero-title {
+    font-size: 2rem;
+    line-height: 1.2;
+  }
+
+  /* Adjust button sizes for touch */
+  .btn-mobile {
+    min-height: 48px;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+/* --- Glass Morphism --- */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* --- POI Marker Styles --- */
+.poi-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* --- Consistent Border Radius --- */
+.rounded-card {
+  border-radius: 0.75rem;
+}
+
+.rounded-button {
+  border-radius: 0.5rem;
+}
+
+/* --- Consistent Shadows --- */
+.shadow-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.shadow-card-hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* --- Smooth Page Transitions --- */
+.page-transition {
+  animation: fadeIn 0.25s ease-out;
+}
+
+/* --- Map Controls Mobile Friendly --- */
+@media (max-width: 768px) {
+  .leaflet-control-container .leaflet-top {
+    top: 80px;
+  }
+
+  .leaflet-control-zoom {
+    margin-top: 10px !important;
+  }
 }

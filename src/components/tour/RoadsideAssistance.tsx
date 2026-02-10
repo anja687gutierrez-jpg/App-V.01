@@ -37,6 +37,9 @@ const ROADSIDE_SERVICES: RoadsideService[] = [
     name: 'AAA Premier Roadside',
     type: 'towing',
     phone: '+1-800-AAA-HELP',
+    location: { lat: 37.7749, lng: -122.4194 },
+    distance: 0,
+    services: ['towing', 'flat tire', 'jump start', 'fuel delivery', 'lockout'],
     countryCode: '+1',
     serviceArea: ['USA', 'Canada', 'Mexico'],
     languages: ['English', 'Spanish'],
@@ -52,6 +55,9 @@ const ROADSIDE_SERVICES: RoadsideService[] = [
     name: 'OnStar Emergency',
     type: 'breakdown',
     phone: '+1-888-466-7827',
+    location: { lat: 37.7749, lng: -122.4194 },
+    distance: 0,
+    services: ['breakdown', 'diagnostics', 'emergency'],
     countryCode: '+1',
     serviceArea: ['USA'],
     languages: ['English', 'Spanish'],
@@ -67,6 +73,9 @@ const ROADSIDE_SERVICES: RoadsideService[] = [
     name: 'Shell Roadside Assist',
     type: 'fuel',
     phone: '+1-800-934-7355',
+    location: { lat: 37.7749, lng: -122.4194 },
+    distance: 0,
+    services: ['fuel delivery', 'battery'],
     countryCode: '+1',
     serviceArea: ['USA'],
     languages: ['English'],
@@ -82,6 +91,9 @@ const ROADSIDE_SERVICES: RoadsideService[] = [
     name: 'Locksmith 24/7',
     type: 'locksmith',
     phone: '+1-800-UNLOCK1',
+    location: { lat: 37.7749, lng: -122.4194 },
+    distance: 0,
+    services: ['lockout', 'key replacement'],
     countryCode: '+1',
     serviceArea: ['USA', 'Canada'],
     languages: ['English', 'French'],
@@ -97,6 +109,9 @@ const ROADSIDE_SERVICES: RoadsideService[] = [
     name: 'Medical Emergency Service',
     type: 'medical',
     phone: '911',
+    location: { lat: 37.7749, lng: -122.4194 },
+    distance: 0,
+    services: ['medical', 'ambulance', 'emergency'],
     countryCode: '+1',
     serviceArea: ['USA'],
     languages: ['English', 'Spanish'],
@@ -112,6 +127,9 @@ const ROADSIDE_SERVICES: RoadsideService[] = [
     name: 'European Breakdown',
     type: 'towing',
     phone: '+44-0800-358-5551',
+    location: { lat: 51.5074, lng: -0.1278 },
+    distance: 0,
+    services: ['towing', 'breakdown', 'flat tire'],
     countryCode: '+44',
     serviceArea: ['UK', 'EU'],
     languages: ['English', 'German', 'French', 'Italian', 'Spanish'],
@@ -127,6 +145,9 @@ const ROADSIDE_SERVICES: RoadsideService[] = [
     name: 'ADAC Pannenhilfe',
     type: 'breakdown',
     phone: '+49-89-76 76 76',
+    location: { lat: 48.1351, lng: 11.5820 },
+    distance: 0,
+    services: ['breakdown', 'towing', 'diagnostics'],
     countryCode: '+49',
     serviceArea: ['Germany', 'Austria', 'Switzerland'],
     languages: ['German', 'English'],
@@ -142,6 +163,9 @@ const ROADSIDE_SERVICES: RoadsideService[] = [
     name: 'ACI Roadside (Italy)',
     type: 'towing',
     phone: '+39-116',
+    location: { lat: 41.9028, lng: 12.4964 },
+    distance: 0,
+    services: ['towing', 'breakdown', 'flat tire'],
     countryCode: '+39',
     serviceArea: ['Italy'],
     languages: ['Italian', 'English'],
@@ -334,7 +358,7 @@ export function RoadsideAssistance({
                   </div>
                   <div className="flex items-center text-gray-600">
                     <Globe className="h-4 w-4 mr-2" />
-                    <span className="capitalize">{service.coverage}</span>
+                    <span className="capitalize">{typeof service.coverage === 'string' ? service.coverage : 'covered'}</span>
                   </div>
                   <div className="flex items-center text-gray-600">
                     <MapPin className="h-4 w-4 mr-2" />
@@ -350,7 +374,7 @@ export function RoadsideAssistance({
                 <div className="flex flex-wrap gap-2">
                   <Badge
                     variant="outline"
-                    className={`text-xs ${getCoverageColor(service.coverage)}`}
+                    className={`text-xs ${getCoverageColor(typeof service.coverage === 'string' ? service.coverage : 'national')}`}
                   >
                     {service.coverage === 'national' && '🇺🇸 National'}
                     {service.coverage === 'international' && '🌍 International'}

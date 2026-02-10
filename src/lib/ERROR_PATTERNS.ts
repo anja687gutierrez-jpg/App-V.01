@@ -19,9 +19,6 @@ async function loadRoutes() {
     'Failed to load routes' // User-friendly message
   );
   
-  if (routes) {
-    console.log('Routes loaded:', routes);
-  }
 }
 
 // ============================================================================
@@ -42,8 +39,7 @@ async function updateRoute(id: string, data: any) {
     // Custom error handling here
     return null;
   }
-  
-  console.log('Route updated:', updated);
+
   return updated;
 }
 

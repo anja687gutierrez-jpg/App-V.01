@@ -14,6 +14,7 @@ interface Trip {
   id: string;
   routeId: string;
   userId: string;
+  name?: string;
   startTime: string;
   endTime: string | null;
   startLocation: { lat: number; lng: number };
@@ -25,11 +26,14 @@ interface Trip {
   checkPoints: Array<{
     location: string;
     timestamp: string;
-    notes?: string;
+    notes?: string | null;
   }>;
   rating: number | null;
   notes: string | null;
   status: 'active' | 'completed';
+  nextPoi?: string;
+  eta?: string;
+  progress?: number;
 }
 
 interface UseCurrentTripResult {

@@ -38,7 +38,6 @@ export function startListening(onResult: ResultCallback): void {
   recognition = createRecognition(onResult);
   if (recognition) {
     recognition.start();
-    console.log('Voice recognition started.');
   }
 }
 
@@ -46,6 +45,5 @@ export function stopListening(): void {
   if (recognition) {
     recognition.stop();
     recognition = null;
-    console.log('Voice recognition stopped.');
   }
 }

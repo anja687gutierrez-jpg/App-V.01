@@ -17,7 +17,6 @@ const mockVideoDatabase: { [key: string]: InfluencerVideo[] } = {
 };
 
 export async function fetchInfluencerContent(poiName: string): Promise<InfluencerVideo[]> {
-  console.log(`Fetching influencer content for: ${poiName}`);
   await new Promise(resolve => setTimeout(resolve, 700)); // Simulate network delay
 
   return mockVideoDatabase[poiName] || [];

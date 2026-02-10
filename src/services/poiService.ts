@@ -236,10 +236,7 @@ export const poiService = {
     lng: number,
     radiusKm: number = 5
   ): Promise<POI[]> {
-    console.log('[POIService] searchNearby called with:', { lat, lng, radiusKm });
-
     let pois = await this.getAllPOIs();
-    console.log('[POIService] Total static POIs available:', pois.length);
 
     // Calculate distance and filter
     const withDistances = pois.map((poi) => {
@@ -249,7 +246,6 @@ export const poiService = {
         poi.location.lat,
         poi.location.lng
       );
-      console.log(`[POIService] Distance to ${poi.name}:`, distance.toFixed(2), 'km');
       return {
         ...poi,
         distance,
@@ -259,16 +255,12 @@ export const poiService = {
     let nearby = withDistances
       .filter((poi) => {
         const isNearby = poi.distance <= radiusKm;
-        if (!isNearby) {
-          console.log(`[POIService] Filtered out ${poi.name} (${poi.distance.toFixed(2)}km > ${radiusKm}km)`);
-        }
         return isNearby;
       })
       .sort((a, b) => a.distance - b.distance);
 
     // If no POIs found nearby, generate some around the user's location
     if (nearby.length === 0) {
-      console.log('[POIService] No static POIs nearby, generating dynamic POIs around user location');
       const generated = this.generateNearbyPOIs(lat, lng, 20);
 
       // Calculate distances for generated POIs
@@ -277,10 +269,7 @@ export const poiService = {
         distance: this.calculateDistance(lat, lng, poi.location.lat, poi.location.lng),
       })).sort((a, b) => a.distance - b.distance);
 
-      console.log('[POIService] Generated POIs:', nearby.length);
     }
-
-    console.log('[POIService] Final nearby POIs:', nearby.length, nearby.map(p => ({ name: p.name, distance: p.distance.toFixed(2) + 'km' })));
 
     return nearby;
   },

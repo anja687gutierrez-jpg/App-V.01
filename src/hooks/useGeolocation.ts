@@ -55,15 +55,9 @@ export function useGeolocation(options: UseGeolocationOptions = {}): UseGeolocat
     }
 
     if (watch) {
-      console.log('[useGeolocation] Starting GPS watch mode');
       // Subscribe to continuous updates
       const unsubscribe = geolocationService.subscribe(
         (pos) => {
-          console.log('[useGeolocation] Position updated:', {
-            lat: pos.latitude,
-            lng: pos.longitude,
-            accuracy: pos.accuracy,
-          });
           setPosition(pos);
           setLoading(false);
           setError(null);
@@ -78,7 +72,6 @@ export function useGeolocation(options: UseGeolocationOptions = {}): UseGeolocat
       return unsubscribe;
     } else if (immediate) {
       // Get position once
-      console.log('[useGeolocation] Getting position once');
       refresh();
     }
   }, [watch, immediate]);

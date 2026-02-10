@@ -15,8 +15,9 @@ export interface POI {
   paymentMethods?: string[];
   visitStatus: 'visited' | 'not-visited' | 'planned';
   phone?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   category?: string;
+  distance?: number;
 }
 
 export interface Route {
@@ -35,7 +36,7 @@ export interface Route {
   createdAt: string;
   orsData?: {
     geometry?: [number, number][];
-    turnByTurnInstructions?: any[];
+    turnByTurnInstructions?: ORSStep[];
     elevation?: number[];
     surface?: string[];
   };
@@ -47,32 +48,37 @@ export interface EmergencyContact {
   name: string;
   phone: string;
   relation: string;
-  isPrimary?: boolean; // Added for safety
+  isPrimary?: boolean;
+  isTrusted?: boolean;
+  shareLocationDuringTrips?: boolean;
+  countryCode?: string;
+  relationship?: string;
 }
 
 // --- UPDATED PREFERENCES (Matches Profile.tsx) ---
 export interface TourPreferences {
   // The "Who" - Matches your Profile IDs
   avatarStyle: 'tech' | 'guide' | 'ranger' | 'foodie' | 'artist' | 'celebrity' | 'event' | string;
-  
+
   // The "How"
   travelStyle: 'scenic' | 'history' | 'luxury' | 'adventure' | 'nomad' | 'eco' | 'culture' | string;
-  
+
   interests: string[];
-  
+
   // Update: Changed from 'low'|'medium' to string to support specific "$250" inputs
-  budget: string; 
+  budget: string;
   currency: string;
   pace: string; // 'Relaxed' | 'Balanced' | 'Fast'
-  
+
   // Vehicle Data
   vehicleType?: 'car' | 'ev' | 'suv' | 'rv';
   vehicleRange?: number;
-  
+
   // Legacy support (optional)
   accommodationType?: 'hotel' | 'camping';
   duration?: number;
   voice?: string;
+  destination?: string;
 }
 
 // --- UPDATED USER PROFILE ---
@@ -140,7 +146,19 @@ export interface RouteStop {
     stationId?: string;
     estimatedCost?: number;
     gallonsNeeded?: number;
+    pricePerGallon?: number;
+    loyaltyDiscount?: number;
+    brand?: string;
+    fuelTypes?: string[];
   };
+  chargingInfo?: {
+    connectorTypes: string[];
+    maxPower: number;
+    pricing: string;
+  };
+  amenities?: string;
+  createdAt?: string;
+  rating?: number;
 }
 
 export interface Tour {
@@ -148,10 +166,10 @@ export interface Tour {
   name: string;
   description?: string;
   destination?: string;
-  status: 'planned' | 'active' | 'completed' | 'cancelled';
+  status: 'planned' | 'active' | 'completed' | 'cancelled' | 'draft';
   startDate?: string;
   endDate?: string;
-  routeStops: RouteStop[];
+  routeStops?: RouteStop[];
   preferences?: TourPreferences;
   createdAt: string;
   updatedAt: string;
@@ -170,21 +188,37 @@ export interface ExtendedEmergencyContact extends EmergencyContact {
 export interface SafetyCheckIn {
   id: string;
   tourId: string;
+  tripId?: string;
+  userId?: string;
   timestamp: string;
   location: { lat: number; lng: number };
-  status: 'safe' | 'delayed' | 'concern';
+  status: 'safe' | 'delayed' | 'concern' | 'pending' | 'concerned' | 'urgent';
   message?: string;
+  lastCheckIn?: string;
+  scheduledNextCheckIn?: string;
+  notifiedContacts?: string[];
+  createdAt?: string;
 }
 
 export interface IncidentReport {
   id: string;
   tourId?: string;
+  tripId?: string;
+  userId?: string;
   type: 'accident' | 'breakdown' | 'hazard' | 'medical' | 'other';
   severity: 'low' | 'medium' | 'high' | 'critical';
-  location: { lat: number; lng: number };
+  location: { lat: number; lng: number } | string;
   description: string;
   timestamp: string;
   reportedBy: string;
+  resolved?: boolean;
+  emergencyContactedAt?: string;
+  latitude?: number;
+  longitude?: number;
+  policeReportNumber?: string;
+  photos?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface RoadsideService {
@@ -197,6 +231,17 @@ export interface RoadsideService {
   type?: string;
   rating?: number;
   available24h?: boolean;
+  countryCode?: string;
+  coverage?: string | {
+    states?: number;
+    international?: boolean;
+    response?: string;
+  };
+  serviceArea?: string | string[];
+  languages?: string[];
+  acceptsInternational?: boolean;
+  responseTime?: string;
+  createdAt?: string;
 }
 
 export interface ParkingLocation {
@@ -213,7 +258,7 @@ export interface ParkingLocation {
   totalSpaces?: number;
   rating?: number;
   amenities?: string[];
-  acceptsPaymentApps?: boolean;
+  acceptsPaymentApps?: boolean | string[];
 }
 
 export interface ChargingStation {
@@ -270,18 +315,24 @@ export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
-  timestamp: string;
-  metadata?: any;
+  timestamp: string | Date;
+  metadata?: Record<string, unknown>;
+  voicePersonality?: string;
 }
 
 export interface Suggestion {
   id: string;
-  type: 'poi' | 'route' | 'activity' | 'restaurant' | 'accommodation';
+  type: 'poi' | 'route' | 'activity' | 'restaurant' | 'accommodation' | 'detour' | 'stop' | 'optimization' | 'discovery';
   title: string;
   description: string;
   location?: { lat: number; lng: number };
-  relevanceScore: number;
-  metadata?: any;
+  relevanceScore?: number;
+  metadata?: Record<string, unknown>;
+  why_hidden?: string;
+  timeAdded?: string;
+  rating?: number;
+  details?: Record<string, unknown>;
+  interest?: string;
 }
 
 // --- Extended TourPreferences ---
@@ -309,8 +360,8 @@ export interface ORSDirectionsRequest {
 export interface ORSDirectionsResponse {
   routes: ORSRoute[];
   metadata: {
-    query: any;
-    engine: any;
+    query: Record<string, unknown>;
+    engine: Record<string, unknown>;
   };
 }
 
@@ -432,4 +483,26 @@ export interface FeatureFlagConfig {
   userId?: string;
   userTier?: MembershipTier;
   featureName: string;
+}
+
+export interface TripRecord {
+  id: string;
+  routeId: string;
+  userId: string;
+  startTime: string;
+  endTime: string | null;
+  startLocation: { lat: number; lng: number };
+  endLocation: { lat: number; lng: number } | null;
+  distanceTraveled: number;
+  fuelUsed: number;
+  fuelCost: number;
+  poisVisited: string[];
+  checkPoints: Array<{
+    location: string;
+    timestamp: string;
+    notes?: string;
+  }>;
+  rating: number | null;
+  notes: string | null;
+  status: string;
 }

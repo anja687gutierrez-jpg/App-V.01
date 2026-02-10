@@ -185,8 +185,8 @@ export function AIGuide() {
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   
-  const requestRef = useRef<number>();
-  const startTimeRef = useRef<number>();
+  const requestRef = useRef<number>(undefined);
+  const startTimeRef = useRef<number>(undefined);
   const scrollRef = useRef<HTMLDivElement>(null); 
 
   // Update greeting on persona change
@@ -268,7 +268,7 @@ export function AIGuide() {
       {/* 1. HEADER */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 border-b pb-6">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">Iconic Pathways AI</h1>
+          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">Iconic Pathways AI™</h1>
           <p className="text-slate-500 mt-1 text-lg">Your intelligent journey companion.</p>
         </div>
         

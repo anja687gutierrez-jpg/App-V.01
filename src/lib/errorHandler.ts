@@ -14,7 +14,6 @@ import { useToast } from '@/hooks/use-toast';
 
 // Simple toast function (can't use hook in utility)
 const showToastNotification = (title: string, description: string) => {
-  console.log(`[${title}] ${description}`);
   alert(`${title}\n${description}`);
 };
 

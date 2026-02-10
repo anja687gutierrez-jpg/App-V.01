@@ -58,7 +58,6 @@ export function TripProvider({ children }: { children: ReactNode }) {
   // 2. Action: Update Full Profile
   const updateProfile = (profile: UserProfile) => {
     setUserProfile(profile);
-    console.log("TripContext: Profile synced.", profile);
   };
 
   // 3. Action: Update Just Preferences (The 'Save' button connects here)
@@ -74,7 +73,6 @@ export function TripProvider({ children }: { children: ReactNode }) {
 
     const updatedProfile = { ...userProfile, preferences: prefs };
     setUserProfile(updatedProfile);
-    console.log("TripContext: Preferences updated. AI Guide should switch.", prefs.avatarStyle);
   };
 
   // 4. Action: Toggle Surprise Manually
@@ -85,7 +83,6 @@ export function TripProvider({ children }: { children: ReactNode }) {
   // 5. Action: Load a specific Tour
   const loadActiveTour = async (tourId: string) => {
     setIsLoading(true);
-    console.log(`Loading tour ${tourId}...`);
     // API logic would go here
     setIsLoading(false);
   };

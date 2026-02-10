@@ -8,13 +8,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Plus, Save, ArrowLeft, MapPin, Zap, Sparkles, Bot, User,
   Send, Heart, Mountain, Utensils, Palette, Star, Ticket,
-  Play, Pause, Map as MapIcon, X, Calendar, GripVertical, Loader2
+  Play, Pause, Map as MapIcon, X, Calendar, GripVertical, Loader2,
+  ChevronUp, ChevronDown, Menu
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { usePOIToRoute, useNavigationState } from '@/hooks';
+import { usePOIToRoute, useNavigationState, useIsMobile } from '@/hooks';
 import { routeService, openRouteService } from '@/services';
 import { InteractiveRouteMap } from '@/components/map/InteractiveRouteMap';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { getUserMembership } from '@/lib/featureFlags';
 import { firestoreService, authService } from '@/lib/firebaseConfig';
 import type { MembershipTier } from '@/types';
@@ -94,6 +96,7 @@ export function RoutePlanner() {
   const { toast } = useToast();
   const { getPendingPOI } = usePOIToRoute();
   const { getPendingNavigation, clearNavigation } = useNavigationState();
+  const isMobile = useIsMobile();
 
   // --- MOCK PROFILE (Safe Mode) ---
   const userProfile = {
@@ -105,6 +108,7 @@ export function RoutePlanner() {
   // --- STATE ---
   const [tripName, setTripName] = useState('My Iconic Trip');
   const [startTime, setStartTime] = useState('08:00'); // Global Departure
+  const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile); // Collapsed by default on mobile
 
   // Waypoints State (with lat/lng for map display)
   const [waypoints, setWaypoints] = useState([
@@ -126,8 +130,8 @@ export function RoutePlanner() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const requestRef = useRef<number>();
-  const startTimeRef = useRef<number>();
+  const requestRef = useRef<number>(undefined);
+  const startTimeRef = useRef<number>(undefined);
 
   // ORS Integration State
   const [userTier, setUserTier] = useState<MembershipTier>('free');
@@ -230,13 +234,16 @@ export function RoutePlanner() {
 
   // --- EFFECTS ---
 
+  // Update sidebar state when mobile changes
+  useEffect(() => {
+    setIsSidebarOpen(!isMobile);
+  }, [isMobile]);
+
   // Load navigation data from QuickPlanDialog, My Trips, or Dashboard
   useEffect(() => {
     const navData = getPendingNavigation();
 
     if (navData) {
-      console.log('[RoutePlanner] Loading navigation data:', navData);
-
       // Handle "start" mode - new trip from QuickPlanDialog
       if (navData.mode === 'start' && navData.waypoints) {
         setTripName(navData.routeName || 'My Iconic Trip');
@@ -537,31 +544,33 @@ export function RoutePlanner() {
     <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] animate-fade-in bg-slate-50">
 
       {/* ---------------- COLUMN 1: THE MAP (LEFT) ---------------- */}
-      <div className="flex-1 relative bg-slate-100 flex flex-col order-2 lg:order-1 h-[500px] lg:h-auto">
+      <div className={`flex-1 relative bg-slate-100 flex flex-col order-2 lg:order-1 ${isMobile && isSidebarOpen ? 'h-[200px]' : 'h-[50vh] lg:h-auto'} transition-all duration-300`}>
         <Tabs defaultValue="map" className="flex-1 flex flex-col">
-          <div className="absolute top-4 left-4 z-20">
+          <div className="absolute top-3 left-3 z-20">
             <TabsList className="bg-white/90 backdrop-blur shadow-sm border border-slate-200">
-              <TabsTrigger value="map" className="text-xs font-medium"><MapIcon className="h-3 w-3 mr-2" />Interactive Map</TabsTrigger>
-              <TabsTrigger value="simulation" className="text-xs font-medium"><Sparkles className="h-3 w-3 mr-2" />AI Vision</TabsTrigger>
+              <TabsTrigger value="map" className="text-[10px] sm:text-xs font-medium touch-target"><MapIcon className="h-3 w-3 mr-1 sm:mr-2" />Map</TabsTrigger>
+              <TabsTrigger value="simulation" className="text-[10px] sm:text-xs font-medium touch-target"><Sparkles className="h-3 w-3 mr-1 sm:mr-2" />AI Vision</TabsTrigger>
             </TabsList>
           </div>
 
           <TabsContent value="map" className="flex-1 m-0 p-0 h-full">
-             <InteractiveRouteMap
-               waypoints={waypoints}
-               onWaypointUpdate={updateWaypoint}
-               onRouteCalculated={handleRouteCalculated}
-               className="w-full h-full"
-             />
+            <ErrorBoundary isolate fallback={<div className="flex items-center justify-center h-full text-muted-foreground">Map failed to load. Please refresh.</div>}>
+              <InteractiveRouteMap
+                waypoints={waypoints}
+                onWaypointUpdate={updateWaypoint}
+                onRouteCalculated={handleRouteCalculated}
+                className="w-full h-full"
+              />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="simulation" className="flex-1 m-0 p-0 relative h-full">
              <div className="absolute inset-0 bg-slate-900 overflow-hidden">
                 <div className="absolute inset-0 opacity-60 bg-[url('https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=2000')] bg-cover bg-center" />
-                <div className="absolute top-4 right-4 z-20 flex gap-2">
-                   <Button size="sm" onClick={() => setIsPlaying(!isPlaying)} className="bg-white/10 backdrop-blur hover:bg-white/20 text-white border border-white/10">
-                      {isPlaying ? <Pause className="h-4 w-4 mr-2"/> : <Play className="h-4 w-4 mr-2"/>}
-                      {isPlaying ? 'Pause' : 'Simulate'}
+                <div className="absolute top-3 right-3 z-20 flex gap-2">
+                   <Button size="sm" onClick={() => setIsPlaying(!isPlaying)} className="bg-white/10 backdrop-blur hover:bg-white/20 text-white border border-white/10 h-9 touch-target">
+                      {isPlaying ? <Pause className="h-4 w-4 mr-1 sm:mr-2"/> : <Play className="h-4 w-4 mr-1 sm:mr-2"/>}
+                      <span className="hidden sm:inline">{isPlaying ? 'Pause' : 'Simulate'}</span>
                    </Button>
                 </div>
                 {/* Route Line */}
@@ -576,21 +585,42 @@ export function RoutePlanner() {
                 {/* Dots */}
                 {waypoints.map((_, idx) => {
                    const pos = 10 + ((idx / (waypoints.length > 1 ? waypoints.length - 1 : 1)) * 80);
-                   return <div key={idx} className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full border-4 border-slate-900 shadow-xl" style={{ left: `${pos}%` }} />
+                   return <div key={idx} className="absolute top-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-white rounded-full border-4 border-slate-900 shadow-xl" style={{ left: `${pos}%` }} />
                 })}
              </div>
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* ---------------- COLUMN 2: THE SIDEBAR (RIGHT) ---------------- */}
-      <div className="w-full lg:w-[420px] bg-white border-l border-slate-200 flex flex-col z-10 shadow-2xl order-1 lg:order-2">
+      {/* ---------------- MOBILE TOGGLE BAR ---------------- */}
+      {isMobile && (
+        <div
+          className={`order-1 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between cursor-pointer touch-target ${buddy.bgSoft}`}
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        >
+          <div className="flex items-center gap-3">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm ${buddy.color}`}>
+              <buddy.icon className="h-4 w-4" />
+            </div>
+            <div>
+              <h2 className="font-bold text-sm text-slate-900">{tripName}</h2>
+              <p className="text-[10px] text-slate-500">{waypoints.length} stops • {routeData ? `${routeData.distance.toFixed(1)} km` : 'Calculating...'}</p>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon" className="h-10 w-10 touch-target">
+            {isSidebarOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronUp className="h-5 w-5" />}
+          </Button>
+        </div>
+      )}
 
-        {/* 1. Header & Persona */}
-        <div className={`p-4 border-b border-slate-100 flex items-center justify-between ${buddy.bgSoft}`}>
+      {/* ---------------- COLUMN 2: THE SIDEBAR (RIGHT) ---------------- */}
+      <div className={`${isMobile ? (isSidebarOpen ? 'h-[60vh]' : 'h-0') : 'w-[420px]'} bg-white border-l border-slate-200 flex flex-col z-10 shadow-2xl order-1 lg:order-2 overflow-hidden transition-all duration-300`}>
+
+        {/* 1. Header & Persona - Hidden on mobile since we have toggle bar */}
+        <div className={`p-3 sm:p-4 border-b border-slate-100 items-center justify-between ${buddy.bgSoft} ${isMobile ? 'hidden' : 'flex'}`}>
            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md ${buddy.color}`}>
-                 <buddy.icon className="h-5 w-5" />
+              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white shadow-md ${buddy.color}`}>
+                 <buddy.icon className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
               <div>
                  <h2 className="font-bold text-sm text-slate-900">{buddy.name}</h2>
@@ -600,40 +630,40 @@ export function RoutePlanner() {
                  </div>
               </div>
            </div>
-           <Button variant="ghost" size="sm" onClick={() => navigate('/trips')} className="h-8 text-slate-500">
+           <Button variant="ghost" size="sm" onClick={() => navigate('/trips')} className="h-8 text-slate-500 touch-target">
              <ArrowLeft className="h-4 w-4 mr-1" /> Exit
            </Button>
         </div>
 
         {/* API Status Badge */}
-        {userTier === 'test' || userTier === 'basic' || userTier === 'advanced' || userTier === 'expert' ? (
-          <Card className="mx-4 mt-3 bg-blue-50 border-blue-200">
-            <CardContent className="p-3">
+        {(userTier === 'test' || userTier === 'basic' || userTier === 'advanced' || userTier === 'expert') ? (
+          <Card className="mx-3 sm:mx-4 mt-3 bg-blue-50 border-blue-200">
+            <CardContent className="p-2 sm:p-3">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-medium text-blue-900 flex items-center gap-1">
                   <MapIcon className="w-3 h-3" />
-                  Real Routing Active
+                  Real Routing
                 </span>
                 <Badge variant="outline" className="bg-white text-blue-700 text-[10px] px-2 py-0.5">
-                  {remainingQuota}/2000 today
+                  {remainingQuota}/2000
                 </Badge>
               </div>
               {isCalculatingRoute && (
                 <div className="mt-2 text-xs text-blue-600 flex items-center gap-2">
                   <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                  Calculating optimal route...
+                  Calculating...
                 </div>
               )}
               {routeData && !isCalculatingRoute && (
                 <div className="mt-2 text-[10px] text-blue-700">
-                  Route: {routeData.distance.toFixed(1)} km - {routeData.duration.toFixed(1)}h
+                  {routeData.distance.toFixed(1)} km - {routeData.duration.toFixed(1)}h
                 </div>
               )}
             </CardContent>
           </Card>
         ) : (
-          <Card className="mx-4 mt-3 bg-gray-50 border-gray-200">
-            <CardContent className="p-3">
+          <Card className="mx-3 sm:mx-4 mt-3 bg-gray-50 border-gray-200">
+            <CardContent className="p-2 sm:p-3">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-medium text-gray-700 flex items-center gap-1">
                   <MapPin className="w-3 h-3" />
@@ -642,33 +672,33 @@ export function RoutePlanner() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-6 text-[10px] px-2"
+                  className="h-6 text-[10px] px-2 touch-target"
                   onClick={() => navigate('/pricing')}
                 >
                   Upgrade
                 </Button>
               </div>
               <p className="text-[10px] text-gray-500 mt-1">
-                Using estimated routes. Upgrade for real-time navigation.
+                Estimated routes. Upgrade for real-time.
               </p>
             </CardContent>
           </Card>
         )}
 
         <ScrollArea className="flex-1" ref={scrollRef}>
-           <div className="p-5 space-y-6">
+           <div className="p-3 sm:p-5 space-y-4 sm:space-y-6">
 
               {/* 2. Hidden Gem Alert */}
               <Card className={`border-l-4 shadow-sm animate-in slide-in-from-top-4 transition-all duration-300 ${buddy.borderColor} bg-white`}>
-                 <CardContent className="p-4">
-                    <div className="flex gap-3 items-start">
-                       <div className={`mt-0.5 p-1.5 rounded-md ${buddy.bgSoft} ${buddy.textColor}`}>
-                          <Sparkles className="h-4 w-4" />
+                 <CardContent className="p-3 sm:p-4">
+                    <div className="flex gap-2 sm:gap-3 items-start">
+                       <div className={`mt-0.5 p-1 sm:p-1.5 rounded-md ${buddy.bgSoft} ${buddy.textColor}`}>
+                          <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
                        </div>
                        <div className="flex-1">
-                          <h4 className="font-bold text-sm text-slate-900">{buddy.suggestionTitle}</h4>
-                          <p className="text-xs text-slate-500 mt-1 leading-relaxed">{buddy.suggestionText}</p>
-                          <Button size="sm" variant="outline" className={`mt-3 w-full h-7 text-xs bg-white hover:${buddy.bgSoft} ${buddy.borderColor} ${buddy.textColor}`} onClick={handleAcceptSuggestion}>
+                          <h4 className="font-bold text-xs sm:text-sm text-slate-900">{buddy.suggestionTitle}</h4>
+                          <p className="text-[10px] sm:text-xs text-slate-500 mt-1 leading-relaxed">{buddy.suggestionText}</p>
+                          <Button size="sm" variant="outline" className={`mt-2 sm:mt-3 w-full h-8 sm:h-7 text-[10px] sm:text-xs bg-white hover:${buddy.bgSoft} ${buddy.borderColor} ${buddy.textColor} touch-target active:scale-95`} onClick={handleAcceptSuggestion}>
                              {buddy.suggestionAction}
                           </Button>
                        </div>
@@ -678,24 +708,25 @@ export function RoutePlanner() {
 
               {/* 3. LIVE ITINERARY */}
               <div>
-                 <div className="space-y-3 mb-4">
+                 <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
                     <Input
                       value={tripName}
                       onChange={(e) => setTripName(e.target.value)}
-                      className="font-bold text-lg border-transparent hover:border-slate-200 focus:border-indigo-300 transition-all p-0 h-auto bg-transparent w-full text-slate-900 placeholder:text-slate-400"
+                      className="font-bold text-base sm:text-lg border-transparent hover:border-slate-200 focus:border-indigo-300 transition-all p-0 h-auto bg-transparent w-full text-slate-900 placeholder:text-slate-400"
                       placeholder="Name your trip..."
                     />
+                    <p className="text-xs sm:text-sm text-slate-500 italic">Don't just drive — experience!</p>
 
                     {/* START TIME CONTROLLER */}
-                    <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-lg border border-slate-100">
-                       <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-400 tracking-wider">
-                          <Calendar className="h-3 w-3" /> Departure
+                    <div className="flex items-center gap-2 sm:gap-4 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                       <div className="flex items-center gap-1 sm:gap-2 text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+                          <Calendar className="h-3 w-3" /> <span className="hidden sm:inline">Departure</span>
                        </div>
                        <Input
                           type="time"
                           value={startTime}
                           onChange={(e) => handleStartTimeChange(e.target.value)}
-                          className="w-24 h-7 text-xs font-bold bg-white border-slate-200 focus:border-indigo-300 cursor-pointer"
+                          className="w-20 sm:w-24 h-8 sm:h-7 text-xs font-bold bg-white border-slate-200 focus:border-indigo-300 cursor-pointer touch-target"
                        />
                        <Badge variant="outline" className="ml-auto text-[10px] font-normal bg-white text-slate-500 border-slate-200">
                           {waypoints.length} Stops
@@ -708,85 +739,87 @@ export function RoutePlanner() {
                     {waypoints.map((point, idx) => (
                       <div
                         key={point.id}
-                        draggable
+                        draggable={!isMobile}
                         onDragStart={(e) => handleDragStart(e, idx)}
                         onDragOver={(e) => handleDragOver(e, idx)}
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, idx)}
                         onDragEnd={handleDragEnd}
-                        className={`relative flex gap-2 group pb-6 last:pb-0 cursor-move transition-all ${
+                        className={`relative flex gap-1 sm:gap-2 group pb-4 sm:pb-6 last:pb-0 ${isMobile ? '' : 'cursor-move'} transition-all ${
                           draggedIndex === idx ? 'opacity-50 scale-95' : ''
                         } ${
                           dragOverIndex === idx ? 'bg-indigo-50 rounded-lg -mx-2 px-2 py-2' : ''
                         }`}
                       >
-                        {/* Drag Handle */}
-                        <div className="mt-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <GripVertical className="h-4 w-4 text-slate-300" />
-                        </div>
+                        {/* Drag Handle - Hidden on mobile */}
+                        {!isMobile && (
+                          <div className="mt-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <GripVertical className="h-4 w-4 text-slate-300" />
+                          </div>
+                        )}
 
                         {/* Connecting Line */}
                         {idx !== waypoints.length - 1 && (
-                           <div className="absolute left-[35px] top-8 bottom-0 w-[2px] bg-slate-100 group-hover:bg-slate-200 transition-colors" />
+                           <div className={`absolute ${isMobile ? 'left-[16px]' : 'left-[35px]'} top-7 sm:top-8 bottom-0 w-[2px] bg-slate-100 group-hover:bg-slate-200 transition-colors`} />
                         )}
 
                         {/* Left Icon (The Timeline Dot) */}
                         <div className="mt-1 relative z-10 flex-shrink-0">
                            {point.type === 'charge' ? (
-                              <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100 shadow-sm">
+                              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100 shadow-sm">
                                  <Zap className="h-3 w-3 fill-current" />
                               </div>
                            ) : point.type === 'highlight' ? (
-                              <div className="w-8 h-8 rounded-full bg-yellow-50 flex items-center justify-center text-yellow-600 border border-yellow-100 shadow-sm">
+                              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-yellow-50 flex items-center justify-center text-yellow-600 border border-yellow-100 shadow-sm">
                                  <Sparkles className="h-3 w-3 fill-current" />
                               </div>
                            ) : point.type === 'start' ? (
-                              <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-green-600 border border-green-100 shadow-sm">
+                              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-green-50 flex items-center justify-center text-green-600 border border-green-100 shadow-sm">
                                  <MapPin className="h-3 w-3" />
                               </div>
                            ) : point.type === 'destination' ? (
-                              <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-600 border border-red-100 shadow-sm">
+                              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-red-50 flex items-center justify-center text-red-600 border border-red-100 shadow-sm">
                                  <MapPin className="h-3 w-3" />
                               </div>
                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-slate-400 border border-slate-200 shadow-sm group-hover:border-slate-300">
+                              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white flex items-center justify-center text-slate-400 border border-slate-200 shadow-sm group-hover:border-slate-300">
                                  <MapPin className="h-3 w-3" />
                               </div>
                            )}
                         </div>
 
                         {/* Middle Content */}
-                        <div className="flex-1 min-w-0 pt-1.5">
+                        <div className="flex-1 min-w-0 pt-1 sm:pt-1.5">
                            <input
                              value={point.name}
                              onChange={(e) => updateWaypoint(point.id, 'name', e.target.value)}
-                             className="block w-full font-semibold text-sm text-slate-900 bg-transparent border-none p-0 focus:ring-0 placeholder:text-slate-300 truncate"
+                             className="block w-full font-semibold text-xs sm:text-sm text-slate-900 bg-transparent border-none p-0 focus:ring-0 placeholder:text-slate-300 truncate"
                              placeholder="Stop Name"
                            />
                            {/* NOTES & BATTERY */}
-                           <div className="flex items-center gap-2 mt-0.5">
+                           <div className="flex items-center gap-1 sm:gap-2 mt-0.5">
                               {point.type !== 'start' && (
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${point.battery < 20 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
+                                <span className={`text-[9px] sm:text-[10px] font-bold px-1 sm:px-1.5 py-0.5 rounded ${point.battery < 20 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
                                   {point.battery}%
                                 </span>
                               )}
                               <input
                                 value={point.notes}
                                 onChange={(e) => updateWaypoint(point.id, 'notes', e.target.value)}
-                                className="block w-full text-xs text-slate-500 bg-transparent border-none p-0 focus:ring-0 placeholder:text-slate-300 truncate"
+                                className="block w-full text-[10px] sm:text-xs text-slate-500 bg-transparent border-none p-0 focus:ring-0 placeholder:text-slate-300 truncate"
                                 placeholder="Notes..."
                               />
                            </div>
                         </div>
 
                         {/* Right Content */}
-                        <div className="pt-1.5 text-right flex flex-col items-end">
-                           <span className="block w-16 text-right font-mono text-xs text-slate-500 bg-transparent border-none p-0">
+                        <div className="pt-1 sm:pt-1.5 text-right flex flex-col items-end">
+                           <span className="block w-12 sm:w-16 text-right font-mono text-[10px] sm:text-xs text-slate-500 bg-transparent border-none p-0">
                              {point.time}
                            </span>
                            <button
                              onClick={() => removeWaypoint(point.id)}
-                             className="mt-1 text-[10px] text-red-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity uppercase font-bold tracking-wider"
+                             className="mt-1 text-[9px] sm:text-[10px] text-red-300 hover:text-red-500 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity uppercase font-bold tracking-wider touch-target"
                            >
                              Remove
                            </button>
@@ -796,7 +829,7 @@ export function RoutePlanner() {
                  </div>
 
                  {/* Add Stop Button */}
-                 <Button variant="ghost" className="w-full mt-4 border border-dashed border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 h-10 text-xs uppercase tracking-widest" onClick={addWaypoint}>
+                 <Button variant="ghost" className="w-full mt-3 sm:mt-4 border border-dashed border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 h-10 text-xs uppercase tracking-widest touch-target active:scale-95" onClick={addWaypoint}>
                     <Plus className="h-3 w-3 mr-2" /> Add Stop
                  </Button>
               </div>
@@ -804,7 +837,7 @@ export function RoutePlanner() {
               {/* 4. Save Button */}
               <Button
                 size="lg"
-                className={`w-full font-bold shadow-lg text-white ${buddy.color} hover:opacity-90 mt-4`}
+                className={`w-full font-bold shadow-lg text-white ${buddy.color} hover:opacity-90 mt-3 sm:mt-4 h-12 touch-target active:scale-95`}
                 onClick={saveTrip}
                 disabled={isSaving}
               >
@@ -821,8 +854,8 @@ export function RoutePlanner() {
                 )}
               </Button>
 
-              {/* 5. Chat History */}
-              <div className="pt-6 border-t border-slate-100">
+              {/* 5. Chat History - Hidden on mobile for space */}
+              <div className={`pt-4 sm:pt-6 border-t border-slate-100 ${isMobile ? 'hidden' : 'block'}`}>
                  <label className="text-[10px] font-bold uppercase text-slate-300 tracking-widest mb-4 block">Discussion</label>
                  <div className="space-y-4">
                     {messages.map((msg) => (
@@ -842,16 +875,16 @@ export function RoutePlanner() {
            </div>
         </ScrollArea>
 
-        {/* 6. Chat Input */}
-        <div className="p-4 bg-white border-t border-slate-200">
+        {/* 6. Chat Input - Hidden on mobile for space */}
+        <div className={`p-3 sm:p-4 bg-white border-t border-slate-200 safe-bottom ${isMobile ? 'hidden' : 'block'}`}>
            <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(inputValue); }} className="flex gap-2">
               <Input
-                placeholder={`Ask ${buddy.name} for suggestions...`}
-                className="bg-slate-50 border-slate-200 h-10 text-sm focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:ring-indigo-500"
+                placeholder={`Ask ${buddy.name}...`}
+                className="bg-slate-50 border-slate-200 h-10 sm:h-10 text-sm focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:ring-indigo-500"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
               />
-              <Button type="submit" size="icon" className={`h-10 w-10 ${buddy.color} text-white shadow-md hover:opacity-90`}>
+              <Button type="submit" size="icon" className={`h-10 w-10 ${buddy.color} text-white shadow-md hover:opacity-90 touch-target active:scale-95`}>
                  <Send className="h-4 w-4" />
               </Button>
            </form>

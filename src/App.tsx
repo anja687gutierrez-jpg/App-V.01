@@ -1,9 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import '@/i18n/config'; // Initialize i18n
-
-// --- SAFE MODE: Commented out the broken context ---
-// import { TripProvider } from '@/context/TripContext'; 
 
 // Pages
 import { Dashboard } from '@/pages/Dashboard';
@@ -19,15 +17,13 @@ import { TripDetails } from '@/pages/TripDetails';
 import { NavigationMode } from '@/pages/NavigationMode';
 
 function App() {
-  console.log("App initializing... Safe Mode active."); // Debugger log
-
   return (
-    // REMOVED <TripProvider> wrapper to stop the crash
-    <AppLayout>
-      <Routes>
+    <ErrorBoundary>
+      <AppLayout>
+        <Routes>
           {/* Main Dashboard */}
           <Route path="/" element={<Dashboard />} />
-          
+
           {/* Navigation Pages */}
           <Route path="/plan" element={<RoutePlanner />} />
           <Route path="/discover" element={<Discover />} />
@@ -36,15 +32,16 @@ function App() {
           <Route path="/trip-details" element={<TripDetails />} />
           <Route path="/navigation" element={<NavigationMode />} />
           <Route path="/favorites" element={<Favorites />} />
-          
+
           {/* User & Settings */}
           <Route path="/profile" element={<Profile />} />
-          
+
           {/* Quick Actions */}
           <Route path="/emergency" element={<Emergency />} />
           <Route path="/nearby" element={<Nearby />} />
         </Routes>
-    </AppLayout>
+      </AppLayout>
+    </ErrorBoundary>
   );
 }
 

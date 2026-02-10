@@ -1,12 +1,73 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import cors from 'cors';
+import { Request, Response } from 'express';
 
 // Initialize Firebase Admin
 admin.initializeApp();
 const db = admin.firestore();
 
 const corsHandler = cors({ origin: true });
+
+/**
+ * 🛠️ DEV MODE - Set via environment variable
+ *
+ * In Firebase Console → Functions → Configuration:
+ *   DEV_MODE=true    → Allows demo users (user_xxx) without real auth
+ *   DEV_MODE=false   → Production: requires real Firebase Auth tokens
+ *
+ * To set: firebase functions:config:set app.dev_mode="true"
+ * To deploy: firebase deploy --only functions
+ */
+const DEV_MODE = process.env.DEV_MODE === 'true' ||
+                 functions.config().app?.dev_mode === 'true';
+
+/**
+ * 🔒 AUTH HELPER - Verifies Firebase Auth token and extracts userId
+ *
+ * In DEV_MODE: Also accepts X-Demo-User header for testing
+ * In PRODUCTION: Requires valid Firebase Auth token
+ *
+ * Usage: const userId = await verifyAuth(req, res);
+ *        if (!userId) return; // Response already sent
+ */
+async function verifyAuth(req: Request, res: Response): Promise<string | null> {
+  // 🛠️ DEV MODE: Accept demo user header
+  if (DEV_MODE) {
+    const demoUser = req.headers['x-demo-user'] as string;
+    if (demoUser && demoUser.startsWith('user_')) {
+      console.log(`[DEV MODE] Using demo user: ${demoUser}`);
+      return demoUser;
+    }
+  }
+
+  // 🔒 PRODUCTION: Require Firebase Auth token
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({
+      success: false,
+      error: DEV_MODE
+        ? 'Missing auth. Send "Authorization: Bearer <token>" or "X-Demo-User: user_xxx" header'
+        : 'Missing or invalid Authorization header. Expected: Bearer <token>'
+    });
+    return null;
+  }
+
+  const idToken = authHeader.split('Bearer ')[1];
+
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    return decodedToken.uid;
+  } catch (error) {
+    console.error('Token verification failed:', error);
+    res.status(401).json({
+      success: false,
+      error: 'Invalid or expired token. Please sign in again.'
+    });
+    return null;
+  }
+}
 
 /**
  * GET /routes
@@ -90,14 +151,9 @@ export const getDashboardStats = functions.https.onRequest(
   async (req, res) => {
     corsHandler(req, res, async () => {
       try {
-        const userId = req.query.uid as string;
-
-        if (!userId) {
-          return res.status(400).json({
-            success: false,
-            error: 'Missing userId'
-          });
-        }
+        // 🔒 SECURE: Verify token and get userId (replaces req.query.uid)
+        const userId = await verifyAuth(req, res);
+        if (!userId) return; // Auth failed, response already sent
 
         // Single aggregated read instead of 3 separate reads
         // Fetch user's trips
@@ -168,16 +224,12 @@ export const getTrips = functions.https.onRequest(
   async (req, res) => {
     corsHandler(req, res, async () => {
       try {
-        const userId = req.query.uid as string;
+        // 🔒 SECURE: Verify token and get userId
+        const userId = await verifyAuth(req, res);
+        if (!userId) return;
+
         const limit = parseInt(req.query.limit as string) || 10;
         const offset = parseInt(req.query.offset as string) || 0;
-
-        if (!userId) {
-          return res.status(400).json({
-            success: false,
-            error: 'Missing userId'
-          });
-        }
 
         const snapshot = await db
           .collection('trips')
@@ -217,15 +269,11 @@ export const createTrip = functions.https.onRequest(
   async (req, res) => {
     corsHandler(req, res, async () => {
       try {
-        const userId = req.query.uid as string;
-        const tripData = req.body;
+        // 🔒 SECURE: Verify token and get userId
+        const userId = await verifyAuth(req, res);
+        if (!userId) return;
 
-        if (!userId) {
-          return res.status(400).json({
-            success: false,
-            error: 'Missing userId'
-          });
-        }
+        const tripData = req.body;
 
         const tripRef = await db.collection('trips').add({
           userId,
@@ -262,14 +310,17 @@ export const updateTrip = functions.https.onRequest(
   async (req, res) => {
     corsHandler(req, res, async () => {
       try {
+        // 🔒 SECURE: Verify token and get userId
+        const userId = await verifyAuth(req, res);
+        if (!userId) return;
+
         const tripId = req.query.id as string;
-        const userId = req.query.uid as string;
         const updateData = req.body;
 
-        if (!tripId || !userId) {
+        if (!tripId) {
           return res.status(400).json({
             success: false,
-            error: 'Missing tripId or userId'
+            error: 'Missing tripId'
           });
         }
 

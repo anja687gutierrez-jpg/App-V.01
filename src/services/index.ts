@@ -18,4 +18,6 @@ export { openRouteService } from './openRouteService';
 export { geolocationService } from './geolocationService';
 export { favoritesService } from './favoritesService';
 export { nrelService } from './nrelService';
+export { aiService } from './aiService';
 export type { ChargingStationFormatted } from './nrelService';
+export type { ChatMessage, RouteContext, AIResponse } from './aiService';
