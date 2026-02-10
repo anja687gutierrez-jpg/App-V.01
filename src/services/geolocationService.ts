@@ -78,7 +78,6 @@ class GeolocationService {
     }
 
     if (this.isTracking) {
-      console.log('Already tracking location');
       return;
     }
 

@@ -6,9 +6,12 @@ let currentUser: UserProfile = {
   name: 'Alex Rover',
   email: 'alex.rover@example.com',
   preferences: {
+    avatarStyle: 'guide',
     travelStyle: 'adventure',
     interests: ['nature', 'photography'],
     budget: 'medium',
+    currency: 'USD',
+    pace: 'Balanced',
     accommodationType: 'hotel',
     vehicleType: 'ev',
     vehicleRange: 300,

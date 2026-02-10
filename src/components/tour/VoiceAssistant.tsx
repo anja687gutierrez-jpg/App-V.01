@@ -351,7 +351,7 @@ export function VoiceAssistant({
                     )}
 
                     <span className="text-xs opacity-70 mt-1 block">
-                      {msg.timestamp.toLocaleTimeString()}
+                      {msg.timestamp instanceof Date ? msg.timestamp.toLocaleTimeString() : new Date(msg.timestamp).toLocaleTimeString()}
                     </span>
                   </div>
                 </div>

@@ -22,7 +22,6 @@ export async function trackSuggestionInteraction(suggestionId: string, action: '
     timestamp: Date.now(),
   };
 
-  console.log('Tracking interaction:', interaction);
   interactionHistory.push(interaction);
   // In a real app, this would be saved to a user's profile or an analytics service.
 }
@@ -37,7 +36,6 @@ export async function saveChatMessage(message: Omit<ChatMessage, 'timestamp'>): 
     ...message,
     timestamp: Date.now(),
   };
-  console.log('Saving chat message:', fullMessage);
   chatHistory.push(fullMessage);
   return fullMessage;
 }

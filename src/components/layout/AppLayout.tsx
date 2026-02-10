@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { useIsMobile, useGeolocation } from '@/hooks';
@@ -103,7 +104,9 @@ export function AppLayout({ children }: AppLayoutProps) {
       )}
 
       {/* AI Travel Bestie Chat Widget */}
-      <TravelBestie />
+      <ErrorBoundary isolate fallback={null}>
+        <TravelBestie />
+      </ErrorBoundary>
     </div>
   );
 }

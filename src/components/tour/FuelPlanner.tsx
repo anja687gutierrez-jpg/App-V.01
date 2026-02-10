@@ -62,6 +62,7 @@ export function FuelPlanner({
           {
             id: 'shell_harris',
             name: 'Shell - Harris Ranch Rest Stop',
+            location: { lat: 35.8922, lng: -120.8234 }, address: 'Harris Ranch, CA',
             latitude: 35.8922,
             longitude: -120.8234,
             pricePerGallon: basePrice + priceVariation(),
@@ -76,6 +77,7 @@ export function FuelPlanner({
           {
             id: 'costco_fresno',
             name: 'Costco Gas - Fresno Station',
+            location: { lat: 36.7469, lng: -119.7674 }, address: 'Fresno, CA',
             latitude: 36.7469,
             longitude: -119.7674,
             pricePerGallon: basePrice - 0.35 + priceVariation(), // Costco usually cheaper
@@ -90,6 +92,7 @@ export function FuelPlanner({
           {
             id: 'chevron_tulare',
             name: 'Chevron - Tulare Station',
+            location: { lat: 36.2183, lng: -119.3385 }, address: 'Tulare, CA',
             latitude: 36.2183,
             longitude: -119.3385,
             pricePerGallon: basePrice + 0.05 + priceVariation(),
@@ -104,6 +107,7 @@ export function FuelPlanner({
           {
             id: 'arco_bakersfield',
             name: 'ARCO - Bakersfield Budget Stop',
+            location: { lat: 35.3733, lng: -119.0187 }, address: 'Bakersfield, CA',
             latitude: 35.3733,
             longitude: -119.0187,
             pricePerGallon: basePrice - 0.25 + priceVariation(), // ARCO is budget
@@ -118,6 +122,7 @@ export function FuelPlanner({
           {
             id: 'bpamoco_visalia',
             name: 'BP/Amoco - Visalia Station',
+            location: { lat: 36.3305, lng: -119.2945 }, address: 'Visalia, CA',
             latitude: 36.3305,
             longitude: -119.2945,
             pricePerGallon: basePrice + 0.08 + priceVariation(),
@@ -139,6 +144,7 @@ export function FuelPlanner({
           {
             id: 'fallback_1',
             name: 'Gas Station - Highway Stop',
+            location: { lat: 36.5, lng: -120.0 }, address: 'Highway Stop, CA',
             latitude: 36.5,
             longitude: -120.0,
             pricePerGallon: 3.50,
@@ -195,6 +201,9 @@ export function FuelPlanner({
       type: 'fuel',
       name: station.name,
       description: `${station.brand} - $${(station.pricePerGallon + station.loyaltyDiscount).toFixed(2)}/gal | Est. $${costAtStation.toFixed(2)} to fill`,
+      location: station.location,
+      address: station.address,
+      order: routeStops.length + 1,
       latitude: station.latitude,
       longitude: station.longitude,
       stopOrder: routeStops.length + 1,

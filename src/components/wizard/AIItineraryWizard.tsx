@@ -37,7 +37,10 @@ export function AIItineraryWizard({ trigger, onTourGenerated }: AIItineraryWizar
     vehicleType: 'ev',
     vehicleRange: 300,
     budget: 'medium',
-    travelStyle: 'adventure'
+    travelStyle: 'adventure',
+    avatarStyle: 'guide',
+    currency: 'USD',
+    pace: 'Balanced'
   });
   const { toast } = useToast();
 
@@ -66,7 +69,6 @@ export function AIItineraryWizard({ trigger, onTourGenerated }: AIItineraryWizar
   const parseAIPrompt = async (prompt: string): Promise<Partial<TourPreferences>> => {
     if (!prompt.trim()) return {};
     // Mock AI parsing
-    console.log('Original AI prompt:', prompt);
     await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
     const mockParsedData: Partial<TourPreferences> = {
       destination: 'California Coast',
@@ -112,10 +114,8 @@ export function AIItineraryWizard({ trigger, onTourGenerated }: AIItineraryWizar
 
       const tour: Tour = {
         id: `tour_${Date.now()}`,
-        userId: 'user_demo',
         name: tourName,
-        startLocation: preferences.destination,
-        endLocation: preferences.destination,
+        destination: preferences.destination,
         preferences,
         status: 'draft',
         createdAt: new Date().toISOString(),
@@ -127,17 +127,21 @@ export function AIItineraryWizard({ trigger, onTourGenerated }: AIItineraryWizar
       let stopOrder = 1;
 
       for (const interest of preferences.interests.slice(0, 5)) {
+        const lat = 37.7749 + (Math.random() - 0.5) * 0.1;
+        const lng = -122.4194 + (Math.random() - 0.5) * 0.1;
         const stop: RouteStop = {
           id: `stop_${Date.now()}_${stopOrder}`,
           tourId: tour.id,
           type: interest === 'food' ? 'restaurant' : 'poi',
           name: `${interest.charAt(0).toUpperCase() + interest.slice(1)} Experience`,
           description: `Curated ${interest} experience in ${preferences.destination}`,
-          latitude: 37.7749 + (Math.random() - 0.5) * 0.1,
-          longitude: -122.4194 + (Math.random() - 0.5) * 0.1,
+          location: { lat, lng },
+          address: preferences.destination || 'Unknown',
+          order: stopOrder,
+          latitude: lat,
+          longitude: lng,
           stopOrder,
           rating: 4 + Math.random(),
-          visitStatus: 'planned',
           estimatedTime: 60 + Math.random() * 120,
           createdAt: new Date().toISOString()
         };
@@ -146,14 +150,19 @@ export function AIItineraryWizard({ trigger, onTourGenerated }: AIItineraryWizar
       }
 
       if (preferences.vehicleType === 'ev') {
+        const lat = 37.7849 + (Math.random() - 0.5) * 0.1;
+        const lng = -122.4094 + (Math.random() - 0.5) * 0.1;
         const chargingStop: RouteStop = {
           id: `charging_${Date.now()}`,
           tourId: tour.id,
           type: 'charging',
           name: 'Tesla Supercharger',
           description: '250kW fast charging with amenities',
-          latitude: 37.7849 + (Math.random() - 0.5) * 0.1,
-          longitude: -122.4094 + (Math.random() - 0.5) * 0.1,
+          location: { lat, lng },
+          address: 'Tesla Supercharger Station',
+          order: stopOrder,
+          latitude: lat,
+          longitude: lng,
           stopOrder,
           estimatedTime: 30,
           chargingInfo: { connectorTypes: ['Tesla Supercharger', 'CCS'], maxPower: 250, pricing: '$0.28/kWh' },
@@ -172,7 +181,7 @@ export function AIItineraryWizard({ trigger, onTourGenerated }: AIItineraryWizar
       onTourGenerated?.(tour, routeStops);
       setOpen(false);
       setAiPrompt('');
-      setPreferences({ destination: '', duration: 3, interests: [], accommodationType: 'hotel', vehicleType: 'ev', vehicleRange: 300, budget: 'medium', travelStyle: 'adventure' });
+      setPreferences({ destination: '', duration: 3, interests: [], accommodationType: 'hotel', vehicleType: 'ev', vehicleRange: 300, budget: 'medium', travelStyle: 'adventure', avatarStyle: 'guide', currency: 'USD', pace: 'Balanced' });
     } catch (error) {
       console.error('Failed to generate itinerary:', error);
       toast({ title: 'Generation Failed', description: 'Unable to create itinerary. Please try again.', variant: 'destructive' });

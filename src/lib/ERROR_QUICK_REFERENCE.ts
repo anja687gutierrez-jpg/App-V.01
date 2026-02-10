@@ -160,7 +160,6 @@ function TripPlanner() {
     );
     
     if (trip) {
-      console.log('Trip created:', trip);
       // Navigate or update state
     }
     

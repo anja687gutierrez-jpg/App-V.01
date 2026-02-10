@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePOIToRoute, useNavigationState, useIsMobile } from '@/hooks';
 import { routeService, openRouteService } from '@/services';
 import { InteractiveRouteMap } from '@/components/map/InteractiveRouteMap';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { getUserMembership } from '@/lib/featureFlags';
 import { firestoreService, authService } from '@/lib/firebaseConfig';
 import type { MembershipTier } from '@/types';
@@ -129,8 +130,8 @@ export function RoutePlanner() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const requestRef = useRef<number>();
-  const startTimeRef = useRef<number>();
+  const requestRef = useRef<number>(undefined);
+  const startTimeRef = useRef<number>(undefined);
 
   // ORS Integration State
   const [userTier, setUserTier] = useState<MembershipTier>('free');
@@ -243,8 +244,6 @@ export function RoutePlanner() {
     const navData = getPendingNavigation();
 
     if (navData) {
-      console.log('[RoutePlanner] Loading navigation data:', navData);
-
       // Handle "start" mode - new trip from QuickPlanDialog
       if (navData.mode === 'start' && navData.waypoints) {
         setTripName(navData.routeName || 'My Iconic Trip');
@@ -555,12 +554,14 @@ export function RoutePlanner() {
           </div>
 
           <TabsContent value="map" className="flex-1 m-0 p-0 h-full">
-             <InteractiveRouteMap
-               waypoints={waypoints}
-               onWaypointUpdate={updateWaypoint}
-               onRouteCalculated={handleRouteCalculated}
-               className="w-full h-full"
-             />
+            <ErrorBoundary isolate fallback={<div className="flex items-center justify-center h-full text-muted-foreground">Map failed to load. Please refresh.</div>}>
+              <InteractiveRouteMap
+                waypoints={waypoints}
+                onWaypointUpdate={updateWaypoint}
+                onRouteCalculated={handleRouteCalculated}
+                className="w-full h-full"
+              />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="simulation" className="flex-1 m-0 p-0 relative h-full">

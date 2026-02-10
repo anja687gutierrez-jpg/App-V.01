@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -31,7 +32,7 @@ interface HeaderProps {
   currentStop?: RouteStop;
   userPreferences?: TourPreferences;
   currentLocation?: { lat: number; lon: number };
-  weather?: { temperature: number; description: string };
+  weather?: { temperature: number; description: string; feelsLike?: number; humidity?: number; windSpeed?: number };
 }
 
 export function Header({
@@ -84,9 +85,6 @@ export function Header({
       setTimeout(() => {
         startListening((result) => {
           setTranscript(result.transcript);
-          if (result.isFinal) {
-            console.log('Final transcript:', result.transcript);
-          }
         });
         setIsVoiceActive(true);
       }, 300);
@@ -358,14 +356,16 @@ export function Header({
       {activeTour && (
         <Dialog open={showAssistant} onOpenChange={setShowAssistant}>
           <DialogContent className="max-w-2xl h-[600px] p-0 border-0">
-            <VoiceAssistant
-              activeTour={activeTour}
-              currentStop={currentStop}
-              userPreferences={userPreferences}
-              currentLocation={currentLocation}
-              weather={weather}
-              onClose={handleCloseAssistant}
-            />
+            <ErrorBoundary isolate fallback={<div className="p-8 text-center text-muted-foreground">Voice Assistant encountered an error. Please try again.</div>}>
+              <VoiceAssistant
+                activeTour={activeTour}
+                currentStop={currentStop}
+                userPreferences={userPreferences}
+                currentLocation={currentLocation}
+                weather={weather}
+                onClose={handleCloseAssistant}
+              />
+            </ErrorBoundary>
           </DialogContent>
         </Dialog>
       )}

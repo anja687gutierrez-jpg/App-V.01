@@ -15,9 +15,6 @@ export function useToast() {
     const newToast = { title, description, variant }
     setToasts((prev) => [...prev, newToast])
     
-    // Log to console so you can see it working for now
-    console.log(`[TOAST] ${title}: ${description}`)
-    
     // In a real app, this logic handles the UI popup
     // For now, we just acknowledge the function call so the app doesn't crash
   }
@@ -25,6 +22,6 @@ export function useToast() {
   return {
     toast,
     toasts,
-    dismiss: (id?: string) => console.log("Dismiss toast", id)
+    dismiss: (_id?: string) => {}
   }
 }

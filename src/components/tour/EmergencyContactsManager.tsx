@@ -209,7 +209,7 @@ export function EmergencyContactsManager({
       name: contact.name,
       phone: contact.phone,
       countryCode: contact.countryCode,
-      relationship: contact.relationship,
+      relationship: contact.relationship as 'family' | 'friend' | 'colleague' | 'medical' | 'other',
       isPrimary: contact.isPrimary,
       isTrusted: contact.isTrusted,
       shareLocationDuringTrips: contact.shareLocationDuringTrips,

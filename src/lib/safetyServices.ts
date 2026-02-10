@@ -46,7 +46,6 @@ export function addEmergencyContact(
   const newContact: EmergencyContact = {
     ...contact,
     id: `contact_${Date.now()}`,
-    userId,
   };
   
   const updated = [...contacts, newContact];
@@ -175,8 +174,11 @@ export function createSafetyCheckIn(
   
   return {
     id: `checkin_${Date.now()}`,
+    tourId: tripId,
     tripId,
     userId,
+    timestamp: now.toISOString(),
+    location: { lat: 0, lng: 0 },
     status,
     lastCheckIn: now.toISOString(),
     scheduledNextCheckIn: nextCheckIn.toISOString(),
@@ -285,6 +287,8 @@ export function createIncidentReport(
     severity: data.severity,
     description: data.description,
     location: data.location?.address || 'Unknown location',
+    timestamp: new Date().toISOString(),
+    reportedBy: userId,
     latitude: data.location?.latitude || 0,
     longitude: data.location?.longitude || 0,
     policeReportNumber: data.policeReportNumber,

@@ -109,8 +109,6 @@ export function AudioNarration({
       ));
 
       // Mock AI speech generation
-      const voice = activeTour.preferences.voice || 'nova';
-      console.log(`Generating audio with voice: ${voice}`);
       await new Promise(resolve => setTimeout(resolve, 1500));
       const url = 'https://cdn.pixabay.com/audio/2022/03/10/audio_c4b0163cfc.mp3';
 

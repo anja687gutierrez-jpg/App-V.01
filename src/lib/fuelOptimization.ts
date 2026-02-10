@@ -225,6 +225,8 @@ async function fetchGasStationPrices(
     {
       id: 'station_1',
       name: 'Shell - Downtown',
+      location: { lat: 36.7, lng: -119.8 },
+      address: 'Downtown, CA',
       latitude: 36.7,
       longitude: -119.8,
       pricePerGallon: 3.45,
@@ -239,6 +241,8 @@ async function fetchGasStationPrices(
     {
       id: 'station_2',
       name: 'Costco Gas',
+      location: { lat: 36.8, lng: -119.7 },
+      address: 'Fresno, CA',
       latitude: 36.8,
       longitude: -119.7,
       pricePerGallon: 3.15,
@@ -253,6 +257,8 @@ async function fetchGasStationPrices(
     {
       id: 'station_3',
       name: 'Chevron',
+      location: { lat: 36.5, lng: -119.9 },
+      address: 'Central CA',
       latitude: 36.5,
       longitude: -119.9,
       pricePerGallon: 3.55,

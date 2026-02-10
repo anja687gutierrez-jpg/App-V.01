@@ -8,13 +8,13 @@
  * To connect to your backend: Replace the sample data calls with your API calls
  */
 
-import { Route, POI } from '@/types';
+import { Route, POI, TripRecord } from '@/types';
 import { openRouteService } from './openRouteService';
 import { isFeatureEnabled } from '@/lib/featureFlags';
 import { incrementUsageCount } from '@/lib/featureFlags';
 
 // Sample route data (replace with your backend API calls)
-const sampleRoutes: Route[] = [
+export const sampleRoutes: Route[] = [
   {
     id: 'route-1',
     name: 'California Coast Highway',
@@ -63,26 +63,40 @@ const sampleRoutes: Route[] = [
 ];
 
 // Sample trip history data
-const sampleTripHistory = [
+export const sampleTripHistory: TripRecord[] = [
   {
     id: 'trip-1',
     routeId: 'route-1',
+    userId: 'user_demo',
     startTime: new Date(2024, 11, 15).toISOString(),
     endTime: new Date(2024, 11, 22).toISOString(),
+    startLocation: { lat: 36.7783, lng: -119.4179 },
+    endLocation: { lat: 34.0522, lng: -118.2437 },
     distanceTraveled: 380,
+    fuelUsed: 13.6,
     fuelCost: 85.50,
     poisVisited: ['poi-1', 'poi-2'],
+    checkPoints: [],
     rating: 4.8,
+    notes: null,
+    status: 'completed',
   },
   {
     id: 'trip-2',
     routeId: 'route-2',
+    userId: 'user_demo',
     startTime: new Date(2024, 10, 5).toISOString(),
     endTime: new Date(2024, 10, 10).toISOString(),
+    startLocation: { lat: 37.7749, lng: -122.4194 },
+    endLocation: { lat: 34.0522, lng: -118.2437 },
     distanceTraveled: 520,
+    fuelUsed: 18.6,
     fuelCost: 120.00,
     poisVisited: ['poi-4'],
+    checkPoints: [],
     rating: 4.5,
+    notes: null,
+    status: 'completed',
   },
 ];
 

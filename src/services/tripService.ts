@@ -43,7 +43,7 @@ const sampleTrips = [
     ],
     rating: 4.8,
     notes: 'Amazing coastal drive with great views',
-    status: 'completed',
+    status: 'completed' as const,
   },
   {
     id: 'trip-2',
@@ -71,7 +71,7 @@ const sampleTrips = [
     ],
     rating: 4.5,
     notes: 'Beautiful mountain scenery',
-    status: 'completed',
+    status: 'completed' as const,
   },
   {
     id: 'trip-3',
@@ -103,7 +103,7 @@ const sampleTrips = [
     progress: 12,
     rating: null,
     notes: null,
-    status: 'active',
+    status: 'active' as const,
   },
 ];
 
@@ -167,16 +167,21 @@ export const tripService = {
     const newTrip = {
       id: `trip-${Date.now()}`,
       ...data,
+      name: data.routeId ? `Trip ${data.routeId}` : 'New Trip',
       startTime: new Date().toISOString(),
       endTime: null,
+      endLocation: null,
       distanceTraveled: 0,
       fuelUsed: 0,
       fuelCost: 0,
-      poisVisited: [],
-      checkPoints: [],
+      poisVisited: [] as string[],
+      checkPoints: [] as Array<{ location: string; timestamp: string; notes: string }>,
       rating: null,
       notes: null,
       status: 'active' as const,
+      nextPoi: undefined,
+      eta: undefined,
+      progress: 0,
     };
     sampleTrips.push(newTrip);
     return Promise.resolve(newTrip);

@@ -95,7 +95,6 @@ export const firestoreService = {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
-      console.log('[Firestore] Trip saved with ID:', docRef.id);
       return docRef.id;
     } catch (error) {
       console.error('[Firestore] Error saving trip:', error);
@@ -155,7 +154,6 @@ export const firestoreService = {
         ...updates,
         updatedAt: serverTimestamp(),
       });
-      console.log('[Firestore] Trip updated:', tripId);
     } catch (error) {
       console.error('[Firestore] Error updating trip:', error);
       throw error;
@@ -169,7 +167,6 @@ export const firestoreService = {
     try {
       const tripRef = doc(db, 'trips', tripId);
       await deleteDoc(tripRef);
-      console.log('[Firestore] Trip deleted:', tripId);
     } catch (error) {
       console.error('[Firestore] Error deleting trip:', error);
       throw error;
@@ -191,7 +188,6 @@ export const firestoreService = {
     trips.unshift(savedTrip);
     localStorage.setItem('myTrips', JSON.stringify(trips));
 
-    console.log('[LocalStorage] Trip saved with ID:', id);
     return id;
   },
 
@@ -220,7 +216,6 @@ export const firestoreService = {
       if (cached) {
         const { data, timestamp } = JSON.parse(cached);
         if (Date.now() - timestamp < 365 * 24 * 60 * 60 * 1000) {
-          console.log('[Firestore] Routes served from cache');
           return data;
         }
       }
@@ -238,7 +233,6 @@ export const firestoreService = {
         timestamp: Date.now(),
       }));
 
-      console.log('[Firestore] Routes fetched:', routes.length);
       return routes;
     } catch (error) {
       console.error('[Firestore] Error fetching routes:', error);
@@ -256,7 +250,6 @@ export const firestoreService = {
       if (cached) {
         const { data, timestamp } = JSON.parse(cached);
         if (Date.now() - timestamp < 365 * 24 * 60 * 60 * 1000) {
-          console.log('[Firestore] POIs served from cache');
           return data;
         }
       }
@@ -274,7 +267,6 @@ export const firestoreService = {
         timestamp: Date.now(),
       }));
 
-      console.log('[Firestore] POIs fetched:', pois.length);
       return pois;
     } catch (error) {
       console.error('[Firestore] Error fetching POIs:', error);

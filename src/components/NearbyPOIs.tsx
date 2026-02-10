@@ -114,15 +114,8 @@ export function NearbyPOIs({
   useEffect(() => {
     const fetchNearbyPOIs = async () => {
       if (!gpsPosition) {
-        console.log('[NearbyPOIs] No GPS position available yet');
         return;
       }
-
-      console.log('[NearbyPOIs] Fetching POIs for location:', {
-        lat: gpsPosition.latitude,
-        lng: gpsPosition.longitude,
-        radiusKm,
-      });
 
       setLoading(true);
       try {
@@ -131,7 +124,6 @@ export function NearbyPOIs({
           gpsPosition.longitude,
           radiusKm
         );
-        console.log('[NearbyPOIs] Found POIs:', pois.length, pois);
         setNearbyPOIs(pois);
       } catch (error) {
         console.error('[NearbyPOIs] Failed to fetch nearby POIs:', error);

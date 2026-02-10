@@ -156,7 +156,6 @@ export const firebaseTripService = {
 
     saveTripsToStorage(trips);
 
-    console.log('[TripService] Trip saved:', trip.id, trip.name);
     return trip;
   },
 
@@ -217,7 +216,6 @@ export const firebaseTripService = {
     trips.splice(index, 1);
     saveTripsToStorage(trips);
 
-    console.log('[TripService] Trip deleted:', tripId);
     return true;
   },
 

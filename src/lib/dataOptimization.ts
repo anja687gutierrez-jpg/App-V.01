@@ -217,7 +217,6 @@ export async function loadDashboardDataOptimized() {
     // This prevents blocking the initial dashboard render
     setTimeout(async () => {
       // Suggestions will be loaded separately
-      console.log('Loading suggestions in background...');
     }, 500);
 
     return {
@@ -256,10 +255,9 @@ export async function parseAIPromptOptimized(
     const mockResponse = {
       tour: {
         id: `tour_${Date.now()}`,
-        userId: 'user_123',
         name: 'West Coast Road Trip',
-        startLocation: 'San Francisco',
-        endLocation: 'Los Angeles',
+        destination: 'California',
+        description: 'San Francisco to Los Angeles road trip',
         preferences: {
           destination: 'California',
           duration: 7,
@@ -267,7 +265,10 @@ export async function parseAIPromptOptimized(
           accommodationType: 'hotel',
           vehicleType: 'suv',
           budget: 'mid',
-          travelStyle: 'flexible'
+          travelStyle: 'flexible',
+          avatarStyle: 'guide',
+          currency: 'USD',
+          pace: 'Balanced'
         },
         status: 'draft',
         createdAt: new Date().toISOString(),

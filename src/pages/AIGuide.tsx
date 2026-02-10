@@ -185,8 +185,8 @@ export function AIGuide() {
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   
-  const requestRef = useRef<number>();
-  const startTimeRef = useRef<number>();
+  const requestRef = useRef<number>(undefined);
+  const startTimeRef = useRef<number>(undefined);
   const scrollRef = useRef<HTMLDivElement>(null); 
 
   // Update greeting on persona change

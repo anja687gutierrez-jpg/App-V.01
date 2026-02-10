@@ -24,7 +24,6 @@ export const routeService = {
     // Check browser cache first
     const cached = getCachedData(ROUTES_CACHE_KEY);
     if (cached) {
-      console.log('✓ Routes loaded from browser cache');
       return cached;
     }
 
@@ -34,15 +33,13 @@ export const routeService = {
       
       // Cache for 1 year (routes rarely change)
       setCachedData(ROUTES_CACHE_KEY, routes, config.routeCacheDuration);
-      console.log('✓ Routes loaded from Firebase, cached locally');
-      
+
       return routes;
     } catch (error) {
       console.error('Error fetching routes from Firebase:', error);
       
       // Fall back to sample data if offline
       if (config.useSampleData) {
-        console.log('✓ Using sample data (offline mode)');
         return sampleRoutes;
       }
       

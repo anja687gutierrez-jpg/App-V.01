@@ -10,6 +10,7 @@ import {
   Settings2, Eye, EyeOff, TrendingUp, Bot, Heart, Mountain,
   Palette, Ticket, Sparkles, Droplets, Wind, Thermometer, Cloud
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { QuickPlanDialog } from '@/components/QuickPlanDialog';
 import { AIItineraryWizard } from '@/components/wizard/AIItineraryWizard';
@@ -44,7 +45,7 @@ const USE_DICEBEAR_AVATARS = true; // Toggle this to false to use icons only
 
 const COMPANION_DATA: Record<string, {
   name: string;
-  icon: any;
+  icon: LucideIcon;
   color: string;
   bg: string;
   description: string;
@@ -157,10 +158,13 @@ const TRENDING_TRIPS = [
 ];
 
 // Helper for safe strings
-const getSafeString = (value: any, fallback: string) => {
+const getSafeString = (value: unknown, fallback: string) => {
   if (typeof value === 'string') return value;
   if (typeof value === 'object' && value !== null) {
-    return value.name || value.address || fallback;
+    const obj = value as Record<string, unknown>;
+    if (typeof obj.name === 'string') return obj.name;
+    if (typeof obj.address === 'string') return obj.address;
+    return fallback;
   }
   return fallback;
 };
@@ -674,7 +678,6 @@ export function Dashboard() {
                            size="lg"
                            className="h-12 sm:h-16 text-base sm:text-lg bg-white text-slate-900 hover:bg-slate-100 font-bold shadow-xl px-4 sm:px-8 touch-target active:scale-95"
                            onClick={() => {
-                             console.log('[Dashboard] Resume Drive clicked, trip:', currentTrip);
                              if (currentTrip?.id) {
                                resumeNavigation(currentTrip.id);
                              } else {

@@ -39,9 +39,9 @@ const SAMPLE_PARKING: ParkingLocation[] = [
     id: '1',
     poiId: 'parking-downtown',
     name: 'Downtown Garage',
-    latitude: 37.7749,
-    longitude: -122.4194,
+    location: { lat: 37.7749, lng: -122.4194 },
     address: '123 Market St, San Francisco, CA',
+    distance: 0.3,
     type: 'garage',
     pricePerHour: 4.50,
     availability: 24,
@@ -49,15 +49,14 @@ const SAMPLE_PARKING: ParkingLocation[] = [
     rating: 4.5,
     acceptsPaymentApps: ['apple-pay', 'google-pay', 'venmo'],
     totalSpaces: 200,
-    createdAt: new Date().toISOString()
   },
   {
     id: '2',
     poiId: 'parking-mission',
     name: 'Mission District Lot',
-    latitude: 37.7599,
-    longitude: -122.4148,
+    location: { lat: 37.7599, lng: -122.4148 },
     address: '456 Valencia St, San Francisco, CA',
+    distance: 1.2,
     type: 'lot',
     pricePerHour: 3.00,
     availability: 45,
@@ -65,15 +64,14 @@ const SAMPLE_PARKING: ParkingLocation[] = [
     rating: 4.2,
     acceptsPaymentApps: ['google-pay'],
     totalSpaces: 150,
-    createdAt: new Date().toISOString()
   },
   {
     id: '3',
     poiId: 'parking-soma',
     name: 'SoMa Valet',
-    latitude: 37.7831,
-    longitude: -122.3969,
+    location: { lat: 37.7831, lng: -122.3969 },
     address: '789 Brannan St, San Francisco, CA',
+    distance: 0.8,
     type: 'valet',
     pricePerHour: 8.00,
     availability: 10,
@@ -81,15 +79,14 @@ const SAMPLE_PARKING: ParkingLocation[] = [
     rating: 4.8,
     acceptsPaymentApps: ['apple-pay', 'google-pay', 'venmo'],
     totalSpaces: 80,
-    createdAt: new Date().toISOString()
   },
   {
     id: '4',
     poiId: 'parking-financial',
     name: 'Financial District Street',
-    latitude: 37.7954,
-    longitude: -122.3977,
+    location: { lat: 37.7954, lng: -122.3977 },
     address: 'Pine St, San Francisco, CA',
+    distance: 1.5,
     type: 'street',
     pricePerHour: 6.00,
     availability: 3,
@@ -97,7 +94,6 @@ const SAMPLE_PARKING: ParkingLocation[] = [
     rating: 3.8,
     acceptsPaymentApps: ['google-pay', 'venmo'],
     totalSpaces: 50,
-    createdAt: new Date().toISOString()
   },
 ];
 
@@ -309,7 +305,7 @@ export function ParkingFinder({
                   <div className="bg-gray-50 p-2 rounded">
                     <div className="text-xs text-gray-600 mb-1">Accepts:</div>
                     <div className="flex items-center space-x-2 flex-wrap">
-                      {parking.acceptsPaymentApps.map(app => (
+                      {(Array.isArray(parking.acceptsPaymentApps) ? parking.acceptsPaymentApps : []).map(app => (
                         <Badge key={app} variant="outline" className="text-xs">
                           {app === 'apple-pay' ? (
                             <>
