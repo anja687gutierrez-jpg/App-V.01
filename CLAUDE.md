@@ -1,6 +1,7 @@
 # CLAUDE.md - Tour Route Planner (App-V.01)
 
-**Location:** `~/App-V.01/`
+**Location:** `~/Projects/tour-route-planner/`
+**Hosting:** Cloudflare Pages (`app-v-01.pages.dev`) — auto-deploys from GitHub `App-V.01` repo
 **Archived Original:** `Google Drive/Business/Archives/App-V.01-original-2026-02-01/`
 
 ## Project Overview

@@ -83,7 +83,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           />
           <div className="fixed inset-y-0 left-0 w-64 bg-card border-r flex flex-col">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Iconic Pathways USA AI</h2>
+              <h2 className="text-lg font-semibold">Iconic Pathways USA AI™</h2>
               <Button
                 variant="ghost"
                 size="icon"
