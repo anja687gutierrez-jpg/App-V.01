@@ -5,7 +5,7 @@
  * Used alongside InteractiveRouteMap to show nearby attractions, restaurants, etc.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -61,7 +61,7 @@ export function POIMarkers({
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
-  const [poiMarkersLayer, setPoiMarkersLayer] = useState<any>(null);
+  const poiMarkersLayerRef = useRef<any>(null);
 
   // Load saved filter preferences
   const [activeCategories, setActiveCategories] = useState<Set<CategoryId>>(() => {
@@ -107,19 +107,19 @@ export function POIMarkers({
 
   // Update map markers when POIs or filters change
   useEffect(() => {
-    if (!mapRef.current || !window.L) return;
+    if (!mapRef.current || !window.L || !mapRef.current._mapPane) return;
 
     const L = window.L;
     const map = mapRef.current;
 
-    // Clear existing POI markers
-    if (poiMarkersLayer) {
-      poiMarkersLayer.clearLayers();
+    // Clear existing POI markers (guard against destroyed map)
+    if (poiMarkersLayerRef.current) {
+      try { poiMarkersLayerRef.current.clearLayers(); } catch { /* map already destroyed */ }
     }
 
     // Create new layer group for POI markers
     const markersLayer = L.layerGroup().addTo(map);
-    setPoiMarkersLayer(markersLayer);
+    poiMarkersLayerRef.current = markersLayer;
 
     // Filter POIs by active categories
     const filteredPois = pois.filter(poi => {
@@ -240,10 +240,12 @@ export function POIMarkers({
 
     return () => {
       window.removeEventListener('addPOIToRoute', handleAddToRoute as EventListener);
-      if (markersLayer) {
-        markersLayer.clearLayers();
-        map.removeLayer(markersLayer);
-      }
+      try {
+        if (markersLayer && map._mapPane) {
+          markersLayer.clearLayers();
+          map.removeLayer(markersLayer);
+        }
+      } catch { /* map already destroyed during unmount */ }
     };
   }, [pois, activeCategories, mapRef, onAddToRoute]);
 

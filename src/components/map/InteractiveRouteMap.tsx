@@ -88,6 +88,10 @@ export function InteractiveRouteMap({
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const routeLayerRef = useRef<any>(null);
+  const destroyedRef = useRef(false);
+
+  // Check if the Leaflet map is alive (synchronous — uses ref set before map.remove())
+  const isMapAlive = () => !destroyedRef.current && mapRef.current && mapRef.current._mapPane;
 
   const [isMapReady, setIsMapReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -156,8 +160,16 @@ export function InteractiveRouteMap({
 
     return () => {
       mounted = false;
+      // Signal destruction BEFORE touching the map — all effects check this synchronously
+      destroyedRef.current = true;
+      setIsMapReady(false);
+      // Clear marker refs before destroying the map
+      markersRef.current = [];
+      if (routeLayerRef.current) {
+        routeLayerRef.current = null;
+      }
       if (mapRef.current) {
-        mapRef.current.remove();
+        try { mapRef.current.remove(); } catch { /* Leaflet cleanup race */ }
         mapRef.current = null;
       }
     };
@@ -165,13 +177,15 @@ export function InteractiveRouteMap({
 
   // Update markers when waypoints change
   useEffect(() => {
-    if (!isMapReady || !mapRef.current) return;
+    if (!isMapReady || !isMapAlive()) return;
 
     const L = window.L;
     const map = mapRef.current;
 
-    // Clear existing markers
-    markersRef.current.forEach(marker => marker.remove());
+    // Clear existing markers (guard against destroyed map)
+    markersRef.current.forEach(marker => {
+      try { marker.remove(); } catch { /* marker already removed */ }
+    });
     markersRef.current = [];
 
     // Add markers for waypoints with coordinates
@@ -258,18 +272,27 @@ export function InteractiveRouteMap({
       }
     }
 
+    return () => {
+      // Clean up markers when effect re-runs or component unmounts
+      markersRef.current.forEach(marker => {
+        try { marker.remove(); } catch { /* already removed */ }
+      });
+      markersRef.current = [];
+    };
   }, [waypoints, isMapReady, onWaypointUpdate]);
 
   // Calculate and draw route when waypoints change
   useEffect(() => {
-    if (!isMapReady || !mapRef.current) return;
+    if (!isMapReady || !isMapAlive()) return;
+
+    let cancelled = false;
 
     const calculateRoute = async () => {
       const validWaypoints = waypoints.filter(wp => wp.lat && wp.lng);
       if (validWaypoints.length < 2) {
         // Clear route if not enough waypoints
         if (routeLayerRef.current) {
-          routeLayerRef.current.remove();
+          try { routeLayerRef.current.remove(); } catch { /* already removed */ }
           routeLayerRef.current = null;
         }
         setRouteInfo(null);
@@ -277,7 +300,9 @@ export function InteractiveRouteMap({
       }
 
       const L = window.L;
-      const map = mapRef.current;
+
+      // Guard: map may have been destroyed while async ops were pending
+      if (!isMapAlive()) return;
 
       try {
         // Get route from OpenRouteService
@@ -286,10 +311,13 @@ export function InteractiveRouteMap({
           includeGeometry: true,
         });
 
+        // Check again after async — map may have been destroyed during the await
+        if (cancelled || !isMapAlive()) return;
+
         if (route && route.geometry) {
           // Clear existing route
           if (routeLayerRef.current) {
-            routeLayerRef.current.remove();
+            try { routeLayerRef.current.remove(); } catch { /* already removed */ }
           }
 
           // Decode geometry (ORS returns encoded polyline or GeoJSON)
@@ -311,7 +339,7 @@ export function InteractiveRouteMap({
             weight: 5,
             opacity: 0.8,
             smoothFactor: 1,
-          }).addTo(map);
+          }).addTo(mapRef.current);
 
           // Update route info
           const info: RouteInfo = {
@@ -324,11 +352,14 @@ export function InteractiveRouteMap({
           onRouteCalculated?.(info);
         }
       } catch (error) {
+        // Don't try fallback drawing if map is gone
+        if (cancelled || !isMapAlive()) return;
+
         console.error('Failed to calculate route:', error);
 
         // Fallback: draw a simple line between waypoints
         if (routeLayerRef.current) {
-          routeLayerRef.current.remove();
+          try { routeLayerRef.current.remove(); } catch { /* already removed */ }
         }
 
         const coords = validWaypoints.map(wp => [wp.lat!, wp.lng!] as [number, number]);
@@ -337,7 +368,7 @@ export function InteractiveRouteMap({
           weight: 3,
           opacity: 0.6,
           dashArray: '10, 10',
-        }).addTo(map);
+        }).addTo(mapRef.current);
 
         // Estimate distance and duration
         const totalDistance = calculateStraightLineDistance(validWaypoints);
@@ -351,6 +382,8 @@ export function InteractiveRouteMap({
     };
 
     calculateRoute();
+
+    return () => { cancelled = true; };
   }, [waypoints, isMapReady, onRouteCalculated]);
 
   // Handle location search

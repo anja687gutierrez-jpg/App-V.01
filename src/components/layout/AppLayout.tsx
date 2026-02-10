@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -17,42 +17,48 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const isMobile = useIsMobile();
+  const weatherFetchRef = useRef(false);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
   const closeSidebar = () => setSidebarOpen(false);
   const toggleCollapsed = () => setIsCollapsed(!isCollapsed);
 
-  // GPS tracking
-  const { position: gpsPosition } = useGeolocation({
+  // Single GPS tracker for the entire app — shared with Header via props
+  const { position: gpsPosition, error: gpsError, loading: gpsLoading } = useGeolocation({
     watch: true,
     immediate: true,
   });
 
   // Fetch weather based on GPS coordinates or fallback to LA
+  // Use coordinate primitives as deps to avoid re-fetching on every GPS object change
+  const gpsLat = gpsPosition?.latitude;
+  const gpsLng = gpsPosition?.longitude;
+
   useEffect(() => {
+    // Skip duplicate fetches while one is in-flight
+    if (weatherFetchRef.current) return;
+    weatherFetchRef.current = true;
+
     const fetchWeather = async () => {
       try {
         let weatherData: WeatherData;
 
-        if (gpsPosition) {
-          // Use GPS coordinates
-          weatherData = await weatherService.getWeatherByCoordinates(
-            gpsPosition.latitude,
-            gpsPosition.longitude
-          );
+        if (gpsLat != null && gpsLng != null) {
+          weatherData = await weatherService.getWeatherByCoordinates(gpsLat, gpsLng);
         } else {
-          // Fallback to Los Angeles
           weatherData = await weatherService.getWeatherByCity('Los Angeles,US');
         }
 
         setWeather(weatherData);
       } catch (error) {
         console.error('[AppLayout] Failed to fetch weather:', error);
+      } finally {
+        weatherFetchRef.current = false;
       }
     };
 
     fetchWeather();
-  }, [gpsPosition]); // Re-fetch when GPS position changes
+  }, [gpsLat, gpsLng]);
 
   return (
     <div className="min-h-screen bg-background flex overflow-hidden">
@@ -68,6 +74,9 @@ export function AppLayout({ children }: AppLayoutProps) {
           onMenuClick={isMobile ? toggleSidebar : toggleCollapsed}
           showMenuButton={isMobile}
           weather={weather}
+          gpsPosition={gpsPosition}
+          gpsError={gpsError}
+          gpsLoading={gpsLoading}
         />
 
         <main className="flex-1 overflow-auto p-6">

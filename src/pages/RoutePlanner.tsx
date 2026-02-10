@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -420,12 +420,12 @@ export function RoutePlanner() {
     setWaypoints(prev => recalculateLogistics(prev.filter(wp => wp.id !== id), startTime));
   };
 
-  const updateWaypoint = (id: number, field: string, val: any) => {
+  const updateWaypoint = useCallback((id: number, field: string, val: any) => {
     setWaypoints(prev => {
       const updated = prev.map(wp => wp.id === id ? { ...wp, [field]: val } : wp);
       return updated;
     });
-  };
+  }, []);
 
   const handleAcceptSuggestion = () => {
     const newStopName = buddy.suggestionAction.replace("Add ", "") + " (AI Rec)";
@@ -518,9 +518,9 @@ export function RoutePlanner() {
   };
 
   // Handle route calculation callback from map
-  const handleRouteCalculated = (routeInfo: { distance: number; duration: number }) => {
+  const handleRouteCalculated = useCallback((routeInfo: { distance: number; duration: number }) => {
     setRouteData(routeInfo);
-  };
+  }, []);
 
   // --- ANIMATION ---
   const animate = (time: number) => {

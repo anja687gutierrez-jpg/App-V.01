@@ -22,7 +22,7 @@ import {
 import { startListening, stopListening } from '@/lib/voice';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { VoiceAssistant } from '@/components/tour/VoiceAssistant';
-import { useGeolocation } from '@/hooks';
+import type { GeolocationPosition, GeolocationError } from '@/services/geolocationService';
 import type { Tour, RouteStop, TourPreferences } from '@/types';
 
 interface HeaderProps {
@@ -33,6 +33,9 @@ interface HeaderProps {
   userPreferences?: TourPreferences;
   currentLocation?: { lat: number; lon: number };
   weather?: { temperature: number; description: string; feelsLike?: number; humidity?: number; windSpeed?: number };
+  gpsPosition?: GeolocationPosition | null;
+  gpsError?: GeolocationError | null;
+  gpsLoading?: boolean;
 }
 
 export function Header({
@@ -42,7 +45,10 @@ export function Header({
   currentStop,
   userPreferences,
   currentLocation,
-  weather
+  weather,
+  gpsPosition = null,
+  gpsError = null,
+  gpsLoading = false,
 }: HeaderProps) {
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -51,12 +57,6 @@ export function Header({
 
   // New state to simulate AI "Thinking" vs "Active"
   const [isAiCalculating, setIsAiCalculating] = useState(false);
-
-  // GPS tracking
-  const { position: gpsPosition, error: gpsError, loading: gpsLoading } = useGeolocation({
-    watch: true,
-    immediate: true,
-  });
 
   // Update time every minute
   useEffect(() => {
