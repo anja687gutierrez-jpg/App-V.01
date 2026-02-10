@@ -19,6 +19,7 @@ import { InteractiveRouteMap } from '@/components/map/InteractiveRouteMap';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { getUserMembership } from '@/lib/featureFlags';
 import { firestoreService, authService } from '@/lib/firebaseConfig';
+import { useAuth } from '@/contexts/AuthContext';
 import type { MembershipTier } from '@/types';
 
 // --- REMOVED CONTEXT IMPORT FOR SAFE MODE ---
@@ -97,6 +98,7 @@ export function RoutePlanner() {
   const { getPendingPOI } = usePOIToRoute();
   const { getPendingNavigation, clearNavigation } = useNavigationState();
   const isMobile = useIsMobile();
+  const { user } = useAuth();
 
   // --- MOCK PROFILE (Safe Mode) ---
   const userProfile = {
@@ -358,11 +360,11 @@ export function RoutePlanner() {
   }, [activePersona]);
 
   useEffect(() => {
-    const userId = 'test@example.com';
+    const userId = user?.email || user?.uid || 'anonymous';
     const tier = getUserMembership(userId);
     setUserTier(tier);
     setRemainingQuota(openRouteService.getRemainingQuota());
-  }, []);
+  }, [user]);
 
   // Calculate route when waypoints change (debounced)
   useEffect(() => {
@@ -380,7 +382,7 @@ export function RoutePlanner() {
           }));
 
         if (coords.length >= 2) {
-          const result = await routeService.calculateRoute(coords, 'test@example.com');
+          const result = await routeService.calculateRoute(coords, user?.email || user?.uid || 'anonymous');
           setRouteData(result);
         }
 

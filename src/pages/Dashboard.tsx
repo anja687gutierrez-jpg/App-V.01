@@ -22,6 +22,7 @@ import { useDashboardStats, useCurrentTrip, useGeolocation, usePOIToRoute, useNa
 import { useToast } from '@/hooks/use-toast';
 import { getUserMembership } from '@/lib/featureFlags';
 import { weatherService, type WeatherData } from '@/services/weatherService';
+import { useAuth } from '@/contexts/AuthContext';
 import type { MembershipTier } from '@/types';
 
 // --- REMOVED CONTEXT IMPORT FOR SAFE MODE ---
@@ -171,6 +172,7 @@ const getSafeString = (value: unknown, fallback: string) => {
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // --- MOCK PROFILE (Safe Mode) ---
   // This replaces the Context hook to prevent crashes
@@ -213,11 +215,10 @@ export function Dashboard() {
 
   // Initialize user tier on mount
   React.useEffect(() => {
-    // In production, get from auth context
-    const userId = 'test@example.com'; // Replace with actual authenticated user
+    const userId = user?.email || user?.uid || 'anonymous';
     const tier = getUserMembership(userId);
     setUserTier(tier);
-  }, []);
+  }, [user]);
 
   // Fetch weather based on GPS coordinates or fallback to LA
   React.useEffect(() => {

@@ -22,3 +22,6 @@ export { useAIAssistant } from './useAIAssistant';
 export { useGeolocation } from './useGeolocation';
 export { usePOIToRoute } from './usePOIToRoute';
 export { useNavigationState } from './useNavigationState';
+
+// Auth
+export { useAuth } from '@/contexts/AuthContext';

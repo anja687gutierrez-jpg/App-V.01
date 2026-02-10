@@ -9,14 +9,16 @@
  */
 
 import type { MembershipTier, MembershipLimits, FeatureAccess, UserUsage } from '@/types';
+import { authService } from '@/lib/firebaseConfig';
 
-// Test users (development/beta testers)
+// Test users (development/beta testers) — matched by email
 const TEST_USERS = [
   'test@example.com',
   'dev@example.com',
   'anjacarrillo@example.com',
   'anja@iconicpathways.com',
   'admin@example.com',
+  'anja687gutierrez@gmail.com',
 ];
 
 // Membership tier limits and feature access
@@ -181,8 +183,10 @@ export function getUserMembership(userId?: string): MembershipTier {
     // Ignore
   }
 
-  // Check if test user
+  // Check if test user — by userId (email) or current Firebase user's email
   if (TEST_USERS.includes(userId)) return 'test';
+  const currentEmail = authService.getCurrentUser()?.email;
+  if (currentEmail && TEST_USERS.includes(currentEmail)) return 'test';
 
   // TODO: In production, query from database/Firestore
   // const userDoc = await db.collection('users').doc(userId).get();

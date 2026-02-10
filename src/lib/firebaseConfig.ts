@@ -23,7 +23,15 @@ import {
   Timestamp,
   serverTimestamp
 } from 'firebase/firestore';
-import { getAuth, Auth, onAuthStateChanged, User } from 'firebase/auth';
+import {
+  getAuth,
+  Auth,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  User,
+} from 'firebase/auth';
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -295,6 +303,20 @@ export const authService = {
 
   getUserId(): string {
     return auth?.currentUser?.uid || 'anonymous';
+  },
+
+  async signIn(email: string, password: string): Promise<User> {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    return result.user;
+  },
+
+  async signUp(email: string, password: string): Promise<User> {
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    return result.user;
+  },
+
+  async signOut(): Promise<void> {
+    await firebaseSignOut(auth);
   },
 };
 

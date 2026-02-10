@@ -2,6 +2,8 @@ import React, { Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { Login } from '@/pages/Login';
 import '@/i18n/config'; // Initialize i18n
 
 // Lightweight pages — load eagerly
@@ -30,33 +32,58 @@ function PageLoader() {
   );
 }
 
+function AuthGate() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
+
+  return (
+    <AppLayout>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Main Dashboard */}
+          <Route path="/" element={<Dashboard />} />
+
+          {/* Navigation Pages */}
+          <Route path="/plan" element={<RoutePlanner />} />
+          <Route path="/discover" element={<Discover />} />
+          <Route path="/guide" element={<AIGuide />} />
+          <Route path="/trips" element={<Trips />} />
+          <Route path="/trip-details" element={<TripDetails />} />
+          <Route path="/navigation" element={<NavigationMode />} />
+          <Route path="/favorites" element={<Favorites />} />
+
+          {/* User & Settings */}
+          <Route path="/profile" element={<Profile />} />
+
+          {/* Quick Actions */}
+          <Route path="/emergency" element={<Emergency />} />
+          <Route path="/nearby" element={<Nearby />} />
+        </Routes>
+      </Suspense>
+    </AppLayout>
+  );
+}
+
 function App() {
   return (
     <ErrorBoundary>
-      <AppLayout>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            {/* Main Dashboard */}
-            <Route path="/" element={<Dashboard />} />
-
-            {/* Navigation Pages */}
-            <Route path="/plan" element={<RoutePlanner />} />
-            <Route path="/discover" element={<Discover />} />
-            <Route path="/guide" element={<AIGuide />} />
-            <Route path="/trips" element={<Trips />} />
-            <Route path="/trip-details" element={<TripDetails />} />
-            <Route path="/navigation" element={<NavigationMode />} />
-            <Route path="/favorites" element={<Favorites />} />
-
-            {/* User & Settings */}
-            <Route path="/profile" element={<Profile />} />
-
-            {/* Quick Actions */}
-            <Route path="/emergency" element={<Emergency />} />
-            <Route path="/nearby" element={<Nearby />} />
-          </Routes>
-        </Suspense>
-      </AppLayout>
+      <AuthProvider>
+        <AuthGate />
+      </AuthProvider>
     </ErrorBoundary>
   );
 }

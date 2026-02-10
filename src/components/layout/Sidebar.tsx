@@ -3,19 +3,21 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLocation, useNavigate } from 'react-router-dom'; // Import router hooks
-import { 
-  Map, 
-  Route, 
-  MapPin, 
-  MessageCircle, 
-  User, 
-  History, 
+import {
+  Map,
+  Route,
+  MapPin,
+  MessageCircle,
+  User,
+  History,
   Compass,
   Navigation,
   Star,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  LogOut
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarProps {
   isCollapsed?: boolean;
@@ -40,6 +42,7 @@ const quickActions = [
 export function Sidebar({ isCollapsed = false, onToggleCollapse, onClose }: SidebarProps) {
   const navigate = useNavigate(); // Hook to move between pages
   const location = useLocation(); // Hook to know where we are right now
+  const { user, signOut } = useAuth();
 
   const handleNavigation = (href: string) => {
     navigate(href);
@@ -144,18 +147,37 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse, onClose }: Side
       </nav>
 
       {/* User section */}
-      <div className="border-t border-sidebar-border flex-shrink-0 p-4">
+      <div className="border-t border-sidebar-border flex-shrink-0 p-4 space-y-2">
         <Button
           variant="ghost"
           className={cn(
             "w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
             isCollapsed && "px-2",
-            location.pathname === '/profile' && "bg-sidebar-accent" // Highlight if on profile
+            location.pathname === '/profile' && "bg-sidebar-accent"
           )}
           onClick={() => handleNavigation('/profile')}
         >
           <User className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
           {!isCollapsed && <span>Profile & Settings</span>}
+        </Button>
+
+        {user && !isCollapsed && (
+          <div className="px-2 pt-1">
+            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+          </div>
+        )}
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn(
+            "w-full justify-start text-muted-foreground hover:text-red-600 hover:bg-red-50",
+            isCollapsed && "px-2"
+          )}
+          onClick={signOut}
+        >
+          <LogOut className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
+          {!isCollapsed && <span>Sign Out</span>}
         </Button>
       </div>
     </div>

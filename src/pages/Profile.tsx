@@ -5,11 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Plus, Trash2, Phone, Shield, Wallet, Globe, CheckCircle2, 
-  Bot, Heart, Mountain, Palette, Sparkles, MapPin, Zap, 
+import {
+  Plus, Trash2, Phone, Shield, Wallet, Globe, CheckCircle2,
+  Bot, Heart, Mountain, Palette, Sparkles, MapPin, Zap,
   Ticket, Star, Volume2, Languages, Wand2, Info, Save, User, ShieldCheck, Utensils
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 // --- LOCAL TYPES ---
 interface EmergencyContact {
@@ -124,6 +125,8 @@ const EXTENDED_TRAVEL_STYLES = [
 ];
 
 export function Profile() {
+  const { user } = useAuth();
+
   // --- STATE ---
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [preferences, setPreferences] = useState<TourPreferences | null>(null);
@@ -144,13 +147,13 @@ export function Profile() {
   const { toast } = useToast();
   const availableInterests = ['Nature', 'City', 'Food', 'History', 'Photography', 'Hiking', 'Art', 'Nightlife', 'Wellness', 'Shopping', 'Sports', 'Concerts', 'Modernism', 'Surprise Me!'];
 
-  // --- MOCKED DATA LOADING ---
+  // --- PROFILE DATA LOADING ---
   useEffect(() => {
     setTimeout(() => {
       const mockProfile: UserProfile = {
-        name: "User Name",
-        email: "user@example.com",
-        phone: "+1 (555) 012-3456",
+        name: user?.displayName || user?.email?.split('@')[0] || 'Explorer',
+        email: user?.email || '',
+        phone: user?.phoneNumber || '',
         preferences: {
           avatarStyle: 'tech',
           travelStyle: 'scenic',
