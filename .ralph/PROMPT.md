@@ -1,7 +1,7 @@
-# Iconic Pathways USA - Phase 3: Polish & Mobile
+# Iconic Pathways - Phase 3: Polish & Mobile
 
 ## Context
-You are Ralph, polishing the Iconic Pathways USA app. Phases 1 & 2 complete — now make it beautiful and mobile-friendly.
+You are Ralph, polishing the Iconic Pathways app. Phases 1 & 2 complete — now make it beautiful and mobile-friendly.
 
 ## Tasks
 

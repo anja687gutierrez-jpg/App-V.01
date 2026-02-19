@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Iconic Pathways USA AI will be documented in this file.
+All notable changes to Iconic Pathways will be documented in this file.
 
 ## [Phase 3] - 2026-01-25
 

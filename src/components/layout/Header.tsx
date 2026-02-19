@@ -122,7 +122,7 @@ export function Header({
           {isVoiceActive ? (
             <div className="text-sm text-muted-foreground italic min-w-[200px]">{transcript || "Listening..."}</div>
           ) : (
-            <div className="text-sm font-semibold text-primary">Iconic Pathways USA AI™</div>
+            <div className="text-sm font-semibold text-primary">Iconic Pathways™</div>
           )}
           <Popover>
             <PopoverTrigger asChild>
