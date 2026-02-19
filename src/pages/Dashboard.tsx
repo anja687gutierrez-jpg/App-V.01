@@ -24,6 +24,7 @@ import { getUserMembership } from '@/lib/featureFlags';
 import { weatherService, type WeatherData } from '@/services/weatherService';
 import { useAuth } from '@/contexts/AuthContext';
 import type { MembershipTier } from '@/types';
+import { PERSONAS } from '@/lib/personas';
 
 // --- REMOVED CONTEXT IMPORT FOR SAFE MODE ---
 // import { useTrip } from '@/context/TripContext';
@@ -41,7 +42,7 @@ const formatDuration = (minutes?: number) => {
   return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
 };
 
-// --- COMPANION LOOKUP TABLE ---
+// --- COMPANION LOOKUP TABLE (derived from shared personas) ---
 const USE_DICEBEAR_AVATARS = true; // Toggle this to false to use icons only
 
 const COMPANION_DATA: Record<string, {
@@ -53,86 +54,18 @@ const COMPANION_DATA: Record<string, {
   personality: string;
   expertise: string[];
   avatarUrl: string;
-  avatarStyle: string;
-}> = {
-  tech: {
-    name: 'Tech Droid',
-    icon: Bot,
-    color: 'text-indigo-600',
-    bg: 'bg-indigo-100',
-    description: 'Precise, logical, and helpful AI companion',
-    personality: 'Analytical and detail-oriented with a focus on efficiency',
-    expertise: ['Route optimization', 'Technical specifications', 'Data-driven recommendations', 'Real-time traffic analysis'],
-    avatarUrl: 'https://api.dicebear.com/9.x/bottts/svg?seed=TechDroid&backgroundColor=c7d2fe',
-    avatarStyle: 'bottts'
-  },
-  guide: {
-    name: 'Travel Bestie',
-    icon: Heart,
-    color: 'text-pink-600',
-    bg: 'bg-pink-100',
-    description: 'Friendly, enthusiastic travel companion',
-    personality: 'Warm and personable with local insider knowledge',
-    expertise: ['Hidden gems', 'Local culture', 'Photo spots', 'Social travel tips', 'Meeting locals'],
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=fbcfe8',
-    avatarStyle: 'avataaars'
-  },
-  ranger: {
-    name: 'Ranger Scout',
-    icon: Mountain,
-    color: 'text-emerald-600',
-    bg: 'bg-emerald-100',
-    description: 'Outdoor adventure and nature expert',
-    personality: 'Adventurous and conservation-focused',
-    expertise: ['Hiking trails', 'National parks', 'Wildlife spotting', 'Camping sites', 'Outdoor safety'],
-    avatarUrl: 'https://api.dicebear.com/7.x/adventurer/svg?seed=RangerScout&backgroundColor=a7f3d0',
-    avatarStyle: 'adventurer'
-  },
-  foodie: {
-    name: 'Flavor Scout',
-    icon: Utensils,
-    color: 'text-orange-600',
-    bg: 'bg-orange-100',
-    description: 'Culinary expert and food lover',
-    personality: 'Passionate about cuisine and local flavors',
-    expertise: ['Local restaurants', 'Food trucks', 'Farmers markets', 'Regional specialties', 'Dietary options'],
-    avatarUrl: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%23fed7aa"/><text x="50" y="50" text-anchor="middle" dominant-baseline="central" font-size="75">🧑‍🍳</text></svg>',
-    avatarStyle: 'emoji'
-  },
-  artist: {
-    name: 'The Artist',
-    icon: Palette,
-    color: 'text-purple-600',
-    bg: 'bg-purple-100',
-    description: 'Creative guide for scenic and artistic routes',
-    personality: 'Imaginative and aesthetically driven',
-    expertise: ['Scenic viewpoints', 'Art galleries', 'Architecture', 'Photography spots', 'Street art'],
-    avatarUrl: 'https://api.dicebear.com/7.x/lorelei/svg?seed=TheArtist&backgroundColor=e9d5ff',
-    avatarStyle: 'lorelei'
-  },
-  celebrity: {
-    name: 'Star Spotter',
-    icon: Star,
-    color: 'text-yellow-600',
-    bg: 'bg-yellow-100',
-    description: 'Pop culture and entertainment specialist',
-    personality: 'Trendy and in-the-know about hotspots',
-    expertise: ['Filming locations', 'Celebrity hotspots', 'Trendy venues', 'Instagram-worthy spots', 'Pop culture sites'],
-    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=StarSpotter&backgroundColor=fef3c7&clip=true',
-    avatarStyle: 'avataaars'
-  },
-  event: {
-    name: 'Event Pro',
-    icon: Ticket,
-    color: 'text-cyan-600',
-    bg: 'bg-cyan-100',
-    description: 'Festival and event planning expert',
-    personality: 'Organized and up-to-date on local happenings',
-    expertise: ['Local events', 'Festivals', 'Concerts', 'Sports games', 'Seasonal activities'],
-    avatarUrl: 'https://api.dicebear.com/9.x/adventurer/svg?seed=EventPro&backgroundColor=b6e3f4,c0aede,d1d4f9',
-    avatarStyle: 'adventurer'
-  },
-};
+}> = Object.fromEntries(
+  Object.values(PERSONAS).map(p => [p.id, {
+    name: p.name,
+    icon: p.icon,
+    color: p.textColor,
+    bg: p.iconBg,
+    description: p.description,
+    personality: p.personality,
+    expertise: p.expertise,
+    avatarUrl: p.avatarUrl,
+  }])
+);
 
 // --- MOCK DATA FOR TRENDING (Stable) ---
 const TRENDING_TRIPS = [

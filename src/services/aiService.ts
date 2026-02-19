@@ -1,9 +1,14 @@
 /**
  * AI Service
  *
- * Handles AI chat completions using Groq (preferred) or Anthropic Claude.
+ * Handles AI chat completions using Gemini via Firebase AI Logic.
  * Provides route-aware travel recommendations for Tesla road trips.
+ * Falls back to demo responses when Gemini is unavailable.
  */
+
+import { geminiModel } from '../lib/firebaseConfig';
+import type { ChatSession } from 'firebase/ai';
+import { PERSONAS, getPersonaSystemPrompt } from '../lib/personas';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -31,50 +36,24 @@ export interface AIResponse {
   error?: string;
 }
 
-const SYSTEM_PROMPT = `You are a friendly, enthusiastic travel guide named "Travel Bestie" helping users plan Tesla road trips through American national parks and scenic routes.
-
-Your personality:
-- Warm, friendly, and conversational (like a knowledgeable friend)
-- Passionate about discovering hidden gems and local experiences
-- Knowledgeable about EV charging, range planning, and Tesla-specific tips
-- Focused on experiences, not just destinations
-
-Guidelines:
-- Give concise, helpful recommendations (2-3 sentences max per suggestion)
-- Mention specific places by name when possible
-- Consider EV charging needs for long trips
-- Highlight photo opportunities and scenic viewpoints
-- Suggest local food spots and hidden gems off the beaten path
-- Be encouraging and build excitement for the trip
-
-When suggesting locations, format them clearly so they can be added to the route.
-If the user has a route context, reference specific waypoints and suggest stops along the way.`;
+// System prompts are now sourced from src/lib/personas.ts via getPersonaSystemPrompt()
 
 class AIService {
-  private groqApiKey: string | null = null;
-  private anthropicApiKey: string | null = null;
-  private conversationHistory: ChatMessage[] = [];
-
-  constructor() {
-    // Check for API keys from environment
-    this.groqApiKey = import.meta.env.VITE_GROQ_API_KEY || null;
-    this.anthropicApiKey = import.meta.env.VITE_ANTHROPIC_API_KEY || null;
-  }
+  private chatSession: ChatSession | null = null;
+  private currentPersona: string = 'guide';
 
   /**
    * Check if AI service is available
    */
   isAvailable(): boolean {
-    return !!(this.groqApiKey || this.anthropicApiKey);
+    return geminiModel !== null;
   }
 
   /**
    * Get which provider is being used
    */
-  getProvider(): 'groq' | 'anthropic' | 'demo' {
-    if (this.groqApiKey) return 'groq';
-    if (this.anthropicApiKey) return 'anthropic';
-    return 'demo';
+  getProvider(): 'gemini' | 'demo' {
+    return geminiModel ? 'gemini' : 'demo';
   }
 
   /**
@@ -112,128 +91,72 @@ class AIService {
   }
 
   /**
+   * Get or create a Gemini chat session with the appropriate persona
+   */
+  private getOrCreateChatSession(persona?: string): ChatSession | null {
+    if (!geminiModel) return null;
+
+    const targetPersona = persona || 'guide';
+
+    // If persona changed or no session exists, create a new one
+    if (this.chatSession === null || this.currentPersona !== targetPersona) {
+      this.currentPersona = targetPersona;
+      const systemText = getPersonaSystemPrompt(targetPersona);
+
+      this.chatSession = geminiModel.startChat({
+        systemInstruction: { role: 'system', parts: [{ text: systemText }] },
+      });
+      console.log(`[AIService] New Gemini chat session (persona: ${targetPersona})`);
+    }
+
+    return this.chatSession;
+  }
+
+  /**
    * Send a message to the AI and get a response
    */
   async chat(
     userMessage: string,
-    routeContext?: RouteContext
+    routeContext?: RouteContext,
+    persona?: string
   ): Promise<AIResponse> {
     const contextMessage = this.buildRouteContext(routeContext);
     const fullUserMessage = userMessage + contextMessage;
 
-    // Add to conversation history
-    this.conversationHistory.push({
-      role: 'user',
-      content: fullUserMessage,
-    });
-
-    // Try Groq first (faster, cheaper)
-    if (this.groqApiKey) {
+    // Try Gemini
+    if (geminiModel) {
       try {
-        return await this.callGroq(fullUserMessage);
+        return await this.callGemini(fullUserMessage, persona);
       } catch (error) {
-        console.error('[AIService] Groq API error:', error);
-        // Fall through to demo mode
+        console.error('[AIService] Gemini error, falling back to demo:', error);
       }
     }
 
-    // Try Anthropic
-    if (this.anthropicApiKey) {
-      try {
-        return await this.callAnthropic(fullUserMessage);
-      } catch (error) {
-        console.error('[AIService] Anthropic API error:', error);
-        // Fall through to demo mode
-      }
-    }
-
-    // Demo mode - return contextual responses
+    // Demo mode fallback
+    console.log('[AIService] Using demo mode');
     return this.getDemoResponse(userMessage, routeContext);
   }
 
   /**
-   * Call Groq API
+   * Call Gemini via Firebase AI Logic
    */
-  private async callGroq(userMessage: string): Promise<AIResponse> {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.groqApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-70b-versatile',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          ...this.conversationHistory.slice(-10), // Keep last 10 messages
-        ],
-        max_tokens: 500,
-        temperature: 0.7,
-      }),
-    });
+  private async callGemini(userMessage: string, persona?: string): Promise<AIResponse> {
+    const session = this.getOrCreateChatSession(persona);
+    if (!session) throw new Error('Gemini session not available');
 
-    if (!response.ok) {
-      throw new Error(`Groq API error: ${response.status}`);
-    }
+    const result = await session.sendMessage(userMessage);
+    const responseText = result.response.text();
 
-    const data = await response.json();
-    const assistantMessage = data.choices[0]?.message?.content || 'Sorry, I couldn\'t generate a response.';
-
-    // Add to history
-    this.conversationHistory.push({
-      role: 'assistant',
-      content: assistantMessage,
-    });
+    console.log('[AIService] Gemini response received (provider: gemini)');
 
     return {
-      message: assistantMessage,
-      suggestions: this.extractSuggestions(assistantMessage),
+      message: responseText,
+      suggestions: this.extractSuggestions(responseText),
     };
   }
 
   /**
-   * Call Anthropic API
-   */
-  private async callAnthropic(userMessage: string): Promise<AIResponse> {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': this.anthropicApiKey!,
-        'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
-        max_tokens: 500,
-        system: SYSTEM_PROMPT,
-        messages: this.conversationHistory.slice(-10).map(m => ({
-          role: m.role === 'assistant' ? 'assistant' : 'user',
-          content: m.content,
-        })),
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Anthropic API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const assistantMessage = data.content[0]?.text || 'Sorry, I couldn\'t generate a response.';
-
-    // Add to history
-    this.conversationHistory.push({
-      role: 'assistant',
-      content: assistantMessage,
-    });
-
-    return {
-      message: assistantMessage,
-      suggestions: this.extractSuggestions(assistantMessage),
-    };
-  }
-
-  /**
-   * Demo mode responses when no API key is available
+   * Demo mode responses when Gemini is unavailable
    */
   private getDemoResponse(userMessage: string, routeContext?: RouteContext): AIResponse {
     const lowerMessage = userMessage.toLowerCase();
@@ -313,7 +236,8 @@ class AIService {
    * Clear conversation history
    */
   clearHistory(): void {
-    this.conversationHistory = [];
+    this.chatSession = null;
+    console.log('[AIService] Chat history cleared');
   }
 
   /**

@@ -32,6 +32,8 @@ import {
   signOut as firebaseSignOut,
   User,
 } from 'firebase/auth';
+import { getAI, getGenerativeModel, GoogleAIBackend } from 'firebase/ai';
+import type { GenerativeModel } from 'firebase/ai';
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -47,6 +49,7 @@ const firebaseConfig = {
 let app: FirebaseApp;
 let db: Firestore;
 let auth: Auth;
+let geminiModel: GenerativeModel | null = null;
 
 const initFirebase = () => {
   if (getApps().length === 0) {
@@ -56,7 +59,18 @@ const initFirebase = () => {
   }
   db = getFirestore(app);
   auth = getAuth(app);
-  return { app, db, auth };
+
+  // Initialize Gemini AI via Firebase AI Logic
+  try {
+    const ai = getAI(app, { backend: new GoogleAIBackend() });
+    geminiModel = getGenerativeModel(ai, { model: 'gemini-2.5-flash' });
+    console.log('[Firebase] Gemini AI initialized');
+  } catch (error) {
+    console.warn('[Firebase] Gemini AI initialization failed:', error);
+    geminiModel = null;
+  }
+
+  return { app, db, auth, geminiModel };
 };
 
 // Initialize on module load
@@ -320,4 +334,4 @@ export const authService = {
   },
 };
 
-export { db, auth, app };
+export { db, auth, app, geminiModel };

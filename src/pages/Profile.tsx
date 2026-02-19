@@ -11,6 +11,7 @@ import {
   Ticket, Star, Volume2, Languages, Wand2, Info, Save, User, ShieldCheck, Utensils
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { PERSONAS, PERSONA_IDS } from '@/lib/personas';
 
 // --- LOCAL TYPES ---
 interface EmergencyContact {
@@ -46,71 +47,19 @@ interface ToastNotification {
 // --- DATA DEFINITIONS ---
 const USE_DICEBEAR_AVATARS = true; // Toggle to false to use icons only
 
-const COMPANIONS = [
-  {
-    id: 'tech',
-    name: 'Tech Droid',
-    role: 'The Optimizer',
-    desc: 'Precise, logical, and obsessed with efficiency.',
-    color: 'bg-indigo-100 text-indigo-600',
-    icon: Bot,
-    avatarUrl: 'https://api.dicebear.com/9.x/bottts/svg?seed=TechDroid&backgroundColor=c7d2fe'
-  },
-  {
-    id: 'guide',
-    name: 'Local Guide',
-    role: 'The Bestie',
-    desc: 'Knows the best photo ops and hidden cafes.',
-    color: 'bg-pink-100 text-pink-600',
-    icon: Heart,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=fbcfe8'
-  },
-  {
-    id: 'ranger',
-    name: 'Ranger Scout',
-    role: 'The Explorer',
-    desc: 'Focuses on nature, safety, and trails.',
-    color: 'bg-emerald-100 text-emerald-600',
-    icon: Mountain,
-    avatarUrl: 'https://api.dicebear.com/7.x/adventurer/svg?seed=RangerScout&backgroundColor=a7f3d0'
-  },
-  {
-    id: 'foodie',
-    name: 'Flavor Scout',
-    role: 'The Bon Vivant',
-    desc: 'Expert on local bites, food fairs, and hidden bars.',
-    color: 'bg-orange-100 text-orange-600',
-    icon: Utensils,
-    avatarUrl: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%23fed7aa"/><text x="50" y="50" text-anchor="middle" dominant-baseline="central" font-size="75">🧑‍🍳</text></svg>'
-  },
-  {
-    id: 'artist',
-    name: 'The Artist',
-    role: 'The Aesthete',
-    desc: 'Loves Mid-Century Modernism and Neon Art.',
-    color: 'bg-purple-100 text-purple-600',
-    icon: Palette,
-    avatarUrl: 'https://api.dicebear.com/7.x/lorelei/svg?seed=TheArtist&backgroundColor=e9d5ff'
-  },
-  {
-    id: 'celebrity',
-    name: 'Star Spotter',
-    role: 'The Insider',
-    desc: 'Expert on celebrity estates and filming locations.',
-    color: 'bg-yellow-100 text-yellow-700',
-    icon: Star,
-    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=StarSpotter&backgroundColor=fef3c7&clip=true'
-  },
-  {
-    id: 'event',
-    name: 'The Event Pro',
-    role: 'The Fixer',
-    desc: 'Finds the best sports, concerts, and theme park deals.',
-    color: 'bg-cyan-100 text-cyan-600',
-    icon: Ticket,
-    avatarUrl: 'https://api.dicebear.com/9.x/adventurer/svg?seed=EventPro&backgroundColor=b6e3f4,c0aede,d1d4f9'
-  },
-];
+// Companions derived from shared persona config
+const COMPANIONS = PERSONA_IDS.map(id => {
+  const p = PERSONAS[id];
+  return {
+    id: p.id,
+    name: p.name,
+    role: p.role,
+    desc: p.description,
+    color: `${p.iconBg} ${p.textColor}`,
+    icon: p.icon,
+    avatarUrl: p.avatarUrl,
+  };
+});
 
 const EXTENDED_TRAVEL_STYLES = [
   { id: 'scenic', name: 'Scenic Cruiser', emoji: '🛣️', desc: 'Beautiful drives & comfort.', tags: ['Nature', 'Photography'] },

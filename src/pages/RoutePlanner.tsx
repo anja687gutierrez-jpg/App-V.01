@@ -21,62 +21,10 @@ import { getUserMembership } from '@/lib/featureFlags';
 import { firestoreService, authService } from '@/lib/firebaseConfig';
 import { useAuth } from '@/contexts/AuthContext';
 import type { MembershipTier } from '@/types';
+import { PERSONAS } from '@/lib/personas';
 
 // --- REMOVED CONTEXT IMPORT FOR SAFE MODE ---
 // import { useTrip } from '@/context/TripContext';
-
-// --- 1. PERSONAS ---
-const PERSONAS: Record<string, any> = {
-  tech: {
-    id: 'tech', name: 'Iconic Tech', role: 'System',
-    color: 'bg-indigo-600', textColor: 'text-indigo-600', borderColor: 'border-indigo-200', bgSoft: 'bg-indigo-50',
-    icon: Bot, greeting: "Systems nominal. Planning optimal route efficiency.",
-    suggestionTitle: "Optimization Alert", suggestionText: "Traffic detected. Rerouting via Tesla Way saves 12m.",
-    suggestionAction: "Apply Detour"
-  },
-  guide: {
-    id: 'guide', name: 'Travel Bestie', role: 'Friend',
-    color: 'bg-pink-500', textColor: 'text-pink-500', borderColor: 'border-pink-200', bgSoft: 'bg-pink-50',
-    icon: Heart, greeting: "Omg, let's plan the perfect trip! I have so many ideas!",
-    suggestionTitle: "Hidden Gem Alert!", suggestionText: "There is a secret waterfall just 10 mins off this route.",
-    suggestionAction: "Add Waterfall"
-  },
-  ranger: {
-    id: 'ranger', name: 'Ranger Scout', role: 'Guide',
-    color: 'bg-emerald-600', textColor: 'text-emerald-700', borderColor: 'border-emerald-200', bgSoft: 'bg-emerald-50',
-    icon: Mountain, greeting: "Ready to map the terrain. Checking trail conditions.",
-    suggestionTitle: "Scenic Overlook", suggestionText: "Elevation gain ahead. Perfect spot for a sunset photo.",
-    suggestionAction: "Add Overlook"
-  },
-  foodie: {
-    id: 'foodie', name: 'Flavor Scout', role: 'Connoisseur',
-    color: 'bg-orange-500', textColor: 'text-orange-600', borderColor: 'border-orange-200', bgSoft: 'bg-orange-50',
-    icon: Utensils, greeting: "Route plotting... searching for the best pie in the state.",
-    suggestionTitle: "Must-Try Diner", suggestionText: "Rated 4.9 stars. Famous for their cherry pie.",
-    suggestionAction: "Add Lunch"
-  },
-  artist: {
-    id: 'artist', name: 'The Artist', role: 'Curator',
-    color: 'bg-purple-600', textColor: 'text-purple-600', borderColor: 'border-purple-200', bgSoft: 'bg-purple-50',
-    icon: Palette, greeting: "Let's curate a journey of color and light.",
-    suggestionTitle: "Neon Museum", suggestionText: "A visual masterpiece awaits just off the highway.",
-    suggestionAction: "Add Visit"
-  },
-  celebrity: {
-    id: 'celebrity', name: 'Star Spotter', role: 'Insider',
-    color: 'bg-yellow-600', textColor: 'text-yellow-700', borderColor: 'border-yellow-200', bgSoft: 'bg-yellow-50',
-    icon: Star, greeting: "Mapping the route past the stars' estates.",
-    suggestionTitle: "Filming Location", suggestionText: "You're passing the diner from that famous 90s movie!",
-    suggestionAction: "Stop & Look"
-  },
-  event: {
-    id: 'event', name: 'Event Pro', role: 'Promoter',
-    color: 'bg-cyan-600', textColor: 'text-cyan-700', borderColor: 'border-cyan-200', bgSoft: 'bg-cyan-50',
-    icon: Ticket, greeting: "Scanning for festivals and live events nearby.",
-    suggestionTitle: "Street Fair", suggestionText: "Live music starting in 20 minutes nearby.",
-    suggestionAction: "Add Detour"
-  }
-};
 
 const SIMULATION_DURATION = 15000;
 type Message = { id: string; role: 'ai' | 'user'; text: string; };
@@ -597,7 +545,7 @@ export function RoutePlanner() {
       {/* ---------------- MOBILE TOGGLE BAR ---------------- */}
       {isMobile && (
         <div
-          className={`order-1 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between cursor-pointer touch-target ${buddy.bgSoft}`}
+          className={`order-1 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between cursor-pointer touch-target ${buddy.iconBg}`}
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         >
           <div className="flex items-center gap-3">
@@ -619,7 +567,7 @@ export function RoutePlanner() {
       <div className={`${isMobile ? (isSidebarOpen ? 'h-[60vh]' : 'h-0') : 'w-[420px]'} bg-white border-l border-slate-200 flex flex-col z-10 shadow-2xl order-1 lg:order-2 overflow-hidden transition-all duration-300`}>
 
         {/* 1. Header & Persona - Hidden on mobile since we have toggle bar */}
-        <div className={`p-3 sm:p-4 border-b border-slate-100 items-center justify-between ${buddy.bgSoft} ${isMobile ? 'hidden' : 'flex'}`}>
+        <div className={`p-3 sm:p-4 border-b border-slate-100 items-center justify-between ${buddy.iconBg} ${isMobile ? 'hidden' : 'flex'}`}>
            <div className="flex items-center gap-3">
               <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white shadow-md ${buddy.color}`}>
                  <buddy.icon className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -694,13 +642,13 @@ export function RoutePlanner() {
               <Card className={`border-l-4 shadow-sm animate-in slide-in-from-top-4 transition-all duration-300 ${buddy.borderColor} bg-white`}>
                  <CardContent className="p-3 sm:p-4">
                     <div className="flex gap-2 sm:gap-3 items-start">
-                       <div className={`mt-0.5 p-1 sm:p-1.5 rounded-md ${buddy.bgSoft} ${buddy.textColor}`}>
+                       <div className={`mt-0.5 p-1 sm:p-1.5 rounded-md ${buddy.iconBg} ${buddy.textColor}`}>
                           <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
                        </div>
                        <div className="flex-1">
                           <h4 className="font-bold text-xs sm:text-sm text-slate-900">{buddy.suggestionTitle}</h4>
                           <p className="text-[10px] sm:text-xs text-slate-500 mt-1 leading-relaxed">{buddy.suggestionText}</p>
-                          <Button size="sm" variant="outline" className={`mt-2 sm:mt-3 w-full h-8 sm:h-7 text-[10px] sm:text-xs bg-white hover:${buddy.bgSoft} ${buddy.borderColor} ${buddy.textColor} touch-target active:scale-95`} onClick={handleAcceptSuggestion}>
+                          <Button size="sm" variant="outline" className={`mt-2 sm:mt-3 w-full h-8 sm:h-7 text-[10px] sm:text-xs bg-white hover:${buddy.iconBg} ${buddy.borderColor} ${buddy.textColor} touch-target active:scale-95`} onClick={handleAcceptSuggestion}>
                              {buddy.suggestionAction}
                           </Button>
                        </div>

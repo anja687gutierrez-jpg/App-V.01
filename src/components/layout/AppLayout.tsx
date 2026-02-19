@@ -5,6 +5,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { useIsMobile, useGeolocation } from '@/hooks';
+import { useLocation } from 'react-router-dom';
 import { weatherService, type WeatherData } from '@/services/weatherService';
 import { TravelBestie } from '@/components/ai/TravelBestie';
 
@@ -17,6 +18,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const isMobile = useIsMobile();
+  const { pathname } = useLocation();
   const weatherFetchRef = useRef(false);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
@@ -112,10 +114,12 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
       )}
 
-      {/* AI Travel Bestie Chat Widget */}
-      <ErrorBoundary isolate fallback={null}>
-        <TravelBestie />
-      </ErrorBoundary>
+      {/* AI Travel Bestie Chat Widget — hidden on /guide (has its own full-page chat) */}
+      {pathname !== '/guide' && (
+        <ErrorBoundary isolate fallback={null}>
+          <TravelBestie />
+        </ErrorBoundary>
+      )}
     </div>
   );
 }
