@@ -23,5 +23,8 @@ export { useGeolocation } from './useGeolocation';
 export { usePOIToRoute } from './usePOIToRoute';
 export { useNavigationState } from './useNavigationState';
 
+// Vehicle
+export { useVehicle } from './useVehicle';
+
 // Auth
 export { useAuth } from '@/contexts/AuthContext';

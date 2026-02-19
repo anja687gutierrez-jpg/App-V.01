@@ -13,6 +13,7 @@ import {
   Compass,
   Navigation,
   Star,
+  Car,
   ChevronLeft,
   ChevronRight,
   LogOut
@@ -30,6 +31,7 @@ const navigation = [
   { name: 'Route Planner', icon: Route, href: '/plan', badge: 'New' },
   { name: 'Discover POIs', icon: MapPin, href: '/discover' },
   { name: 'AI Guide', icon: MessageCircle, href: '/guide', badge: 'AI' },
+  { name: 'Vehicle', icon: Car, href: '/vehicle' },
   { name: 'My Trips', icon: History, href: '/trips' },
   { name: 'Favorites', icon: Star, href: '/favorites' },
 ];

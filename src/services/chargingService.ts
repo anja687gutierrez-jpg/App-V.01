@@ -46,14 +46,16 @@ export interface ChargingPlan {
   warnings: string[];
 }
 
-// Tesla Model Y specs (default)
+import { TESLA_MODEL_Y_SPECS } from '@/types/vehicle';
+
+// Tesla Model Y specs — derived from shared constants
 const TESLA_SPECS = {
-  MODEL_Y_RANGE: 280, // miles (standard range)
-  MODEL_Y_EFFICIENCY: 0.28, // kWh per mile
-  BATTERY_CAPACITY: 75, // kWh (usable)
-  COMFORTABLE_MIN_BATTERY: 20, // Don't drop below 20%
-  CHARGE_TARGET: 80, // Charge to 80% for longevity
-  SUPERCHARGER_RATE: 170, // miles of range per hour at peak
+  MODEL_Y_RANGE: TESLA_MODEL_Y_SPECS.EPA_RANGE_MILES,
+  MODEL_Y_EFFICIENCY: TESLA_MODEL_Y_SPECS.EFFICIENCY_KWH_PER_MILE,
+  BATTERY_CAPACITY: TESLA_MODEL_Y_SPECS.BATTERY_CAPACITY_KWH,
+  COMFORTABLE_MIN_BATTERY: TESLA_MODEL_Y_SPECS.COMFORTABLE_MIN_BATTERY,
+  CHARGE_TARGET: TESLA_MODEL_Y_SPECS.CHARGE_TARGET,
+  SUPERCHARGER_RATE: TESLA_MODEL_Y_SPECS.SUPERCHARGER_RATE_MPH,
 };
 
 class ChargingService {

@@ -21,3 +21,4 @@ export { nrelService } from './nrelService';
 export { aiService } from './aiService';
 export type { ChargingStationFormatted } from './nrelService';
 export type { ChatMessage, RouteContext, AIResponse } from './aiService';
+export { teslaService } from './teslaService';

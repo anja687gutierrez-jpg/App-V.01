@@ -8,7 +8,8 @@ import {
   MapPin, Navigation, Clock, Battery, Zap, Sun, Car, User,
   Activity, Play, Plus, Youtube, Utensils, Map, Star, Tent,
   Settings2, Eye, EyeOff, TrendingUp, Bot, Heart, Mountain,
-  Palette, Ticket, Sparkles, Droplets, Wind, Thermometer, Cloud
+  Palette, Ticket, Sparkles, Droplets, Wind, Thermometer, Cloud,
+  ChevronRight, CheckCircle2
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -18,13 +19,14 @@ import { CurrentStatusWidget } from '@/components/CurrentStatusWidget';
 import { NextStopWidget } from '@/components/NextStopWidget';
 import { NearbyPOIs } from '@/components/NearbyPOIs';
 import { TierBadge } from '@/components/TierBadge';
-import { useDashboardStats, useCurrentTrip, useGeolocation, usePOIToRoute, useNavigationState } from '@/hooks';
+import { useDashboardStats, useCurrentTrip, useGeolocation, usePOIToRoute, useNavigationState, useVehicle } from '@/hooks';
 import { useToast } from '@/hooks/use-toast';
 import { getUserMembership } from '@/lib/featureFlags';
 import { weatherService, type WeatherData } from '@/services/weatherService';
 import { useAuth } from '@/contexts/AuthContext';
 import type { MembershipTier } from '@/types';
 import { PERSONAS } from '@/lib/personas';
+import { VehicleStatusCard } from '@/components/vehicle/VehicleStatusCard';
 
 // --- REMOVED CONTEXT IMPORT FOR SAFE MODE ---
 // import { useTrip } from '@/context/TripContext';
@@ -91,6 +93,18 @@ const TRENDING_TRIPS = [
   }
 ];
 
+// --- ROTATING GREETING SUBTITLES ---
+const GREETING_SUBTITLES = [
+  'Ready for your next adventure along the Pacific Coast?',
+  'The open road is calling — where will you go today?',
+  'Every mile tells a story. What\'s yours?',
+  'Sun\'s out, routes mapped. Let\'s ride.',
+  'Your next great road trip starts right here.',
+  'Adventure awaits just around the bend.',
+  'Time to chase some horizons.',
+  'New roads, new memories. Let\'s go.',
+];
+
 // Helper for safe strings
 const getSafeString = (value: unknown, fallback: string) => {
   if (typeof value === 'string') return value;
@@ -107,6 +121,11 @@ export function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // --- ROTATING SUBTITLE (picked once per mount) ---
+  const [greetingSubtitle] = useState(
+    () => GREETING_SUBTITLES[Math.floor(Math.random() * GREETING_SUBTITLES.length)]
+  );
+
   // --- MOCK PROFILE (Safe Mode) ---
   // This replaces the Context hook to prevent crashes
   const userProfile = {
@@ -119,6 +138,7 @@ export function Dashboard() {
   // --- HOOKS ---
   const { stats, loading: statsLoading, error: statsError } = useDashboardStats();
   const { trip: currentTripRaw, isActive, elapsedTime } = useCurrentTrip();
+  const { vehicle, trend, alerts, tripAnalysis } = useVehicle();
   const { addPOIToRoute } = usePOIToRoute();
   const { resumeNavigation } = useNavigationState();
   const { toast } = useToast();
@@ -233,7 +253,7 @@ export function Dashboard() {
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900">
             Good Afternoon, {userProfile?.name || 'Explorer'}
           </h1>
-          <p className="text-slate-500 mt-1 text-sm sm:text-base md:text-lg">Ready for your next adventure along the Pacific Coast?</p>
+          <p className="text-slate-500 mt-1 text-sm sm:text-base md:text-lg">{greetingSubtitle}</p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
 
@@ -490,70 +510,66 @@ export function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 md:gap-8 mb-8 md:mb-12">
 
         {/* === LEFT COLUMN: STATUS WIDGETS === */}
-        <div className="lg:col-span-3 space-y-4 sm:space-y-6 order-2 lg:order-1">
+        <div className="lg:col-span-4 space-y-4 sm:space-y-6 order-2 lg:order-1">
 
           {/* VEHICLE HEALTH */}
-          {visibleSections.vehicleHealth && (
-            <Card className="border-l-4 border-l-green-500 shadow-sm hover:shadow-md transition-all animate-in fade-in">
-              <CardHeader className="pb-3 bg-slate-50/50 p-4 sm:p-6 sm:pb-3">
-                <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-slate-800">
-                  <Car className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" /> Vehicle Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4 p-4 sm:p-6 sm:pt-4">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground text-xs sm:text-sm">Model</span>
-                    <span className="font-bold text-xs sm:text-sm">Tesla Model Y</span>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between items-center text-xs sm:text-sm">
-                      <span className="text-muted-foreground">Battery</span>
-                      <span className="font-bold text-green-600">85%</span>
-                    </div>
-                    <Progress value={85} className="h-2 bg-slate-100" />
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-dashed">
-                    <span className="text-muted-foreground text-xs sm:text-sm">Range</span>
-                    <div className="flex items-center gap-1 font-bold text-slate-800 text-xs sm:text-sm">
-                      <Battery className="h-4 w-4 text-green-600" /> 280 mi
-                    </div>
-                  </div>
-                </div>
-                <Button variant="ghost" className="w-full mt-4 text-green-700 hover:text-green-800 hover:bg-green-50 text-xs uppercase tracking-wide font-bold touch-target" onClick={() => navigate('/nearby')}>
-                  View Charging Plan
-                </Button>
-              </CardContent>
-            </Card>
+          {visibleSections.vehicleHealth && vehicle && (
+            <VehicleStatusCard
+              vehicle={vehicle}
+              trend={trend}
+              alerts={alerts}
+              tripAnalysis={isActive && currentTripRaw?.distanceTraveled != null
+                ? tripAnalysis(currentTripRaw.distanceTraveled * 0.000621371)
+                : undefined}
+              onViewHealth={() => navigate('/vehicle')}
+            />
           )}
 
           {/* DRIVER HEALTH */}
           {visibleSections.driverHealth && (
-            <Card className={`border-l-4 shadow-sm hover:shadow-md transition-all animate-in fade-in ${driverStatus.status === 'Fresh' ? 'border-l-blue-500' : 'border-l-orange-500'}`}>
-              <CardHeader className="pb-3 bg-slate-50/50 p-4 sm:p-6 sm:pb-3">
-                <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-slate-800">
-                  <driverStatus.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${driverStatus.color}`} /> Driver Health
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4 p-4 sm:p-6 sm:pt-4">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                     <span className="text-muted-foreground text-xs sm:text-sm">Condition</span>
-                     <Badge variant="outline" className={`${driverStatus.bg} ${driverStatus.color} border-none font-bold text-xs`}>
-                       {driverStatus.status}
-                     </Badge>
+            driverStatus.status === 'Fresh' ? (
+              /* Compact single-row when Fresh */
+              <Card className="border-l-4 border-l-green-500 shadow-sm animate-in fade-in">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-bold text-slate-800">Driver Health</span>
+                    </div>
+                    <Badge variant="outline" className="bg-green-50 text-green-600 border-none font-bold text-xs">
+                      Fresh — Good to go
+                    </Badge>
                   </div>
-                  <div className="p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <p className="text-[10px] sm:text-xs text-slate-500 font-medium uppercase mb-1">Recommendation</p>
-                    <p className="text-xs sm:text-sm font-semibold text-slate-800">{driverStatus.recommendation}</p>
+                </CardContent>
+              </Card>
+            ) : (
+              /* Full card when warning/fatigue */
+              <Card className={`border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-all animate-in fade-in`}>
+                <CardHeader className="pb-3 bg-slate-50/50 p-4 sm:p-6 sm:pb-3">
+                  <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-slate-800">
+                    <driverStatus.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${driverStatus.color}`} /> Driver Health
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 p-4 sm:p-6 sm:pt-4">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                       <span className="text-muted-foreground text-xs sm:text-sm">Condition</span>
+                       <Badge variant="outline" className={`${driverStatus.bg} ${driverStatus.color} border-none font-bold text-xs`}>
+                         {driverStatus.status}
+                       </Badge>
+                    </div>
+                    <div className="p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-100">
+                      <p className="text-[10px] sm:text-xs text-slate-500 font-medium uppercase mb-1">Recommendation</p>
+                      <p className="text-xs sm:text-sm font-semibold text-slate-800">{driverStatus.recommendation}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <Button variant="outline" size="sm" className="h-8 sm:h-9 text-xs touch-target">Find Food</Button>
+                        <Button variant="outline" size="sm" className="h-8 sm:h-9 text-xs touch-target">Rest Area</Button>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                      <Button variant="outline" size="sm" className="h-8 sm:h-9 text-xs touch-target">Find Food</Button>
-                      <Button variant="outline" size="sm" className="h-8 sm:h-9 text-xs touch-target">Rest Area</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )
           )}
 
           {/* CURRENT STATUS */}
@@ -568,14 +584,32 @@ export function Dashboard() {
             </div>
           )}
 
+          {/* NEXT STOP WIDGET — grouped with status cards */}
+          {currentTrip && isActive && visibleSections.statusWidgets && (
+            <div className="animate-in fade-in slide-in-from-bottom-8">
+              <NextStopWidget
+                 stationName="Tesla Supercharger"
+                 chargingLevel={55}
+                 eta={currentTrip.eta}
+                 distance="12 miles"
+                 recommendedChargeLevel={80}
+                 currentBattery={55}
+                 amenities={['Coffee', 'Restroom', 'WiFi', 'Shopping']}
+                 isEVCharger={true}
+                 alert="Recommended charge stop. High speed stalls available."
+                 onNavigate={() => {}}
+              />
+            </div>
+          )}
+
         </div>
 
         {/* === CENTER/RIGHT COLUMN: HERO & NEXT STOP === */}
-        <div className="lg:col-span-9 space-y-4 sm:space-y-6 order-1 lg:order-2">
+        <div className="lg:col-span-8 space-y-4 sm:space-y-6 order-1 lg:order-2">
 
             {/* HERO CARD */}
             {visibleSections.tripHero && (
-              <Card className="overflow-hidden border-none shadow-xl relative group min-h-[300px] sm:min-h-[400px] flex flex-col justify-end animate-in fade-in transition-all">
+              <Card className="overflow-hidden border-none shadow-xl relative group min-h-[250px] sm:min-h-[340px] flex flex-col justify-end animate-in fade-in transition-all">
                 <div className="absolute inset-0 z-0">
                    <img
                      src="https://images.pexels.com/photos/238622/pexels-photo-238622.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
@@ -660,32 +694,27 @@ export function Dashboard() {
               </Card>
             )}
 
-            {/* NEXT STOP WIDGET */}
-            {currentTrip && isActive && visibleSections.statusWidgets && (
-              <div className="w-full animate-in fade-in slide-in-from-bottom-8">
-                <NextStopWidget
-                   stationName="Tesla Supercharger"
-                   chargingLevel={55}
-                   eta={currentTrip.eta}
-                   distance="12 miles"
-                   recommendedChargeLevel={80}
-                   currentBattery={55}
-                   amenities={['Coffee', 'Restroom', 'WiFi', 'Shopping']}
-                   isEVCharger={true}
-                   alert="Recommended charge stop. High speed stalls available."
-                   onNavigate={() => {}}
-                />
-              </div>
-            )}
-
-            {/* NEARBY POIS - Always visible with GPS */}
+            {/* NEARBY POIS - Capped preview with "See all" link */}
             {visibleSections.statusWidgets && (
-              <div className="w-full animate-in fade-in slide-in-from-bottom-8">
-                <NearbyPOIs
-                  radiusKm={10}
-                  showCategories={true}
-                  onAddToRoute={addPOIToRoute}
-                />
+              <div className="w-full animate-in fade-in slide-in-from-bottom-8 relative">
+                <div className="max-h-[320px] overflow-hidden relative">
+                  <NearbyPOIs
+                    radiusKm={10}
+                    showCategories={true}
+                    onAddToRoute={addPOIToRoute}
+                  />
+                  {/* Gradient fade overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+                </div>
+                <div className="flex justify-center mt-2">
+                  <Button
+                    variant="ghost"
+                    className="text-blue-600 hover:text-blue-700 text-sm font-semibold gap-1"
+                    onClick={() => navigate('/nearby')}
+                  >
+                    See all nearby <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             )}
 

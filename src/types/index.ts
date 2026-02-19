@@ -1,3 +1,5 @@
+export * from './vehicle';
+
 export interface POI {
   id: string;
   name: string;
