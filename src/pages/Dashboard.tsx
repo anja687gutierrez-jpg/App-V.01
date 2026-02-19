@@ -9,7 +9,8 @@ import {
   Activity, Play, Plus, Youtube, Utensils, Map, Star, Tent,
   Settings2, Eye, EyeOff, TrendingUp, Bot, Heart, Mountain,
   Palette, Ticket, Sparkles, Droplets, Wind, Thermometer, Cloud,
-  ChevronRight, CheckCircle2
+  ChevronRight, CheckCircle2, MessageCircle, Bookmark, Timer,
+  Trophy, Award, Lightbulb
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -105,6 +106,75 @@ const GREETING_SUBTITLES = [
   'New roads, new memories. Let\'s go.',
 ];
 
+// --- QUICK ACTIONS DATA ---
+const QUICK_ACTIONS = [
+  { label: 'Plan Trip', icon: Plus, href: '/plan', bg: 'bg-blue-50', color: 'text-blue-600', hoverBg: 'hover:bg-blue-100' },
+  { label: 'Find Charging', icon: Zap, href: '/discover', bg: 'bg-green-50', color: 'text-green-600', hoverBg: 'hover:bg-green-100' },
+  { label: 'Ask AI Guide', icon: Bot, href: '/guide', bg: 'bg-purple-50', color: 'text-purple-600', hoverBg: 'hover:bg-purple-100' },
+  { label: 'Browse Routes', icon: Map, href: '/trips', bg: 'bg-orange-50', color: 'text-orange-600', hoverBg: 'hover:bg-orange-100' },
+];
+
+// --- WEEKLY STATS DATA ---
+const WEEKLY_STATS = {
+  milesDriven: 142,
+  poisVisited: 8,
+  chargeSessions: 2,
+  driveTime: '6h 23m',
+  changePercent: 23,
+};
+
+// --- COMMUNITY FEED DATA ---
+const COMMUNITY_POSTS = [
+  {
+    id: 'p1',
+    userName: 'Sarah M.',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah',
+    text: 'Just hit the most incredible viewpoint at Bixby Bridge! The fog rolling in made it absolutely magical.',
+    imageUrl: 'https://images.pexels.com/photos/1604869/pexels-photo-1604869.jpeg?auto=compress&cs=tinysrgb&w=600',
+    route: 'Pacific Coast Highway',
+    likes: 24,
+    comments: 8,
+    timeAgo: '2h ago',
+  },
+  {
+    id: 'p2',
+    userName: 'Mike R.',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=mike',
+    text: 'Pro tip: the Buellton Supercharger has amazing tacos next door at El Rancho. 10/10 charge stop.',
+    route: 'Supercharger Review',
+    likes: 47,
+    comments: 12,
+    timeAgo: '5h ago',
+  },
+  {
+    id: 'p3',
+    userName: 'Elena K.',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=elena',
+    text: 'Completed the full Big Sur loop in my Model Y! Battery held up perfectly with 2 charge stops.',
+    imageUrl: 'https://images.pexels.com/photos/3408744/pexels-photo-3408744.jpeg?auto=compress&cs=tinysrgb&w=600',
+    route: 'Big Sur Loop',
+    likes: 63,
+    comments: 15,
+    timeAgo: '1d ago',
+  },
+];
+
+// --- ACHIEVEMENTS DATA ---
+const ACHIEVEMENTS = [
+  { id: 'a1', label: 'First 100 Miles', icon: Trophy, earned: true, color: 'text-yellow-600', bg: 'bg-yellow-50' },
+  { id: 'a2', label: 'Coast Explorer', icon: Mountain, earned: true, color: 'text-blue-600', bg: 'bg-blue-50' },
+  { id: 'a3', label: '5 Charge Stops', icon: Zap, earned: true, color: 'text-green-600', bg: 'bg-green-50' },
+  { id: 'a4', label: 'Night Owl', icon: Star, earned: false, color: 'text-slate-400', bg: 'bg-slate-50' },
+];
+
+// --- EV TIPS DATA ---
+const EV_TIPS = [
+  'Precondition your battery before fast charging in cold weather — it can cut charge time by 20%.',
+  'Keep your tire pressure at the recommended PSI. Under-inflated tires can reduce range by up to 10%.',
+  'Use regenerative braking on downhill stretches to recover energy and extend your range.',
+  'Charge to 80% for daily driving — it\'s faster and better for long-term battery health.',
+];
+
 // Helper for safe strings
 const getSafeString = (value: unknown, fallback: string) => {
   if (typeof value === 'string') return value;
@@ -124,6 +194,9 @@ export function Dashboard() {
   // --- ROTATING SUBTITLE (picked once per mount) ---
   const [greetingSubtitle] = useState(
     () => GREETING_SUBTITLES[Math.floor(Math.random() * GREETING_SUBTITLES.length)]
+  );
+  const [evTip] = useState(
+    () => EV_TIPS[Math.floor(Math.random() * EV_TIPS.length)]
   );
 
   // --- MOCK PROFILE (Safe Mode) ---
@@ -150,7 +223,8 @@ export function Dashboard() {
     driverHealth: true,
     tripHero: true,
     statusWidgets: true,
-    trending: true
+    trending: true,
+    communityFeed: true
   });
 
   // --- USER TIER STATE ---
@@ -602,6 +676,59 @@ export function Dashboard() {
             </div>
           )}
 
+          {/* QUICK ACTIONS */}
+          <Card className="shadow-sm animate-in fade-in slide-in-from-bottom-4">
+            <CardHeader className="pb-2 p-4">
+              <CardTitle className="text-sm font-bold text-slate-800">Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="grid grid-cols-2 gap-2">
+                {QUICK_ACTIONS.map((action) => (
+                  <button
+                    key={action.label}
+                    onClick={() => navigate(action.href)}
+                    className={`flex flex-col items-center gap-1.5 p-3 rounded-lg ${action.bg} ${action.hoverBg} transition-colors cursor-pointer group`}
+                  >
+                    <action.icon className={`h-5 w-5 ${action.color} group-hover:scale-110 transition-transform`} />
+                    <span className={`text-xs font-semibold ${action.color}`}>{action.label}</span>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* ACTIVITY STATS */}
+          <Card className="shadow-sm animate-in fade-in slide-in-from-bottom-4">
+            <CardHeader className="pb-2 p-4">
+              <CardTitle className="text-sm font-bold text-slate-800">This Week</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 bg-blue-50 rounded-md"><Car className="h-3.5 w-3.5 text-blue-600" /></div>
+                  <span className="text-sm text-slate-700 flex-1">{WEEKLY_STATS.milesDriven} miles driven</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 bg-purple-50 rounded-md"><MapPin className="h-3.5 w-3.5 text-purple-600" /></div>
+                  <span className="text-sm text-slate-700 flex-1">{WEEKLY_STATS.poisVisited} POIs visited</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 bg-green-50 rounded-md"><Zap className="h-3.5 w-3.5 text-green-600" /></div>
+                  <span className="text-sm text-slate-700 flex-1">{WEEKLY_STATS.chargeSessions} charge sessions</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 bg-orange-50 rounded-md"><Timer className="h-3.5 w-3.5 text-orange-600" /></div>
+                  <span className="text-sm text-slate-700 flex-1">{WEEKLY_STATS.driveTime} drive time</span>
+                </div>
+              </div>
+              <div className="mt-3 pt-2.5 border-t border-slate-100">
+                <span className="text-xs text-green-600 font-semibold flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3" /> {WEEKLY_STATS.changePercent}% more than last week
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
         </div>
 
         {/* === CENTER/RIGHT COLUMN: HERO & NEXT STOP === */}
@@ -697,7 +824,7 @@ export function Dashboard() {
             {/* NEARBY POIS - Capped preview with "See all" link */}
             {visibleSections.statusWidgets && (
               <div className="w-full animate-in fade-in slide-in-from-bottom-8 relative">
-                <div className="max-h-[320px] overflow-hidden relative">
+                <div className="max-h-[420px] overflow-hidden relative">
                   <NearbyPOIs
                     radiusKm={10}
                     showCategories={true}
@@ -717,6 +844,107 @@ export function Dashboard() {
                 </div>
               </div>
             )}
+
+            {/* COMMUNITY FEED */}
+            {visibleSections.communityFeed && (
+              <div className="animate-in fade-in slide-in-from-bottom-4">
+                <Card className="shadow-sm">
+                  <CardHeader className="pb-2 p-4">
+                    <CardTitle className="text-sm font-bold text-slate-800">Community Feed</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="max-h-[400px] overflow-y-auto relative scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+                      <div className="space-y-4">
+                        {COMMUNITY_POSTS.map((post) => (
+                          <div key={post.id} className="border-b border-slate-100 last:border-0 pb-4 last:pb-0">
+                            {/* Post header */}
+                            <div className="flex items-center gap-2.5 mb-2">
+                              <img
+                                src={post.avatarUrl}
+                                alt={post.userName}
+                                className="w-8 h-8 rounded-full border border-slate-200"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-semibold text-slate-800">{post.userName}</span>
+                                  <span className="text-xs text-slate-400">{post.timeAgo}</span>
+                                </div>
+                                {post.route && (
+                                  <span className="text-xs text-blue-600 font-medium">{post.route}</span>
+                                )}
+                              </div>
+                            </div>
+                            {/* Post image */}
+                            {post.imageUrl && (
+                              <div className="rounded-lg overflow-hidden mb-2">
+                                <img
+                                  src={post.imageUrl}
+                                  alt=""
+                                  className="w-full h-36 object-cover"
+                                />
+                              </div>
+                            )}
+                            {/* Post text */}
+                            <p className="text-sm text-slate-600 leading-relaxed mb-2">{post.text}</p>
+                            {/* Interactions */}
+                            <div className="flex items-center gap-4 text-xs text-slate-400">
+                              <button className="flex items-center gap-1 hover:text-red-500 transition-colors">
+                                <Heart className="h-3.5 w-3.5" /> {post.likes}
+                              </button>
+                              <button className="flex items-center gap-1 hover:text-blue-500 transition-colors">
+                                <MessageCircle className="h-3.5 w-3.5" /> {post.comments}
+                              </button>
+                              <button className="flex items-center gap-1 hover:text-yellow-500 transition-colors ml-auto">
+                                <Bookmark className="h-3.5 w-3.5" /> Save
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* ACHIEVEMENTS + EV TIP — side by side */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4">
+              <Card className="shadow-sm">
+                <CardHeader className="pb-2 p-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-bold text-slate-800">Achievements</CardTitle>
+                    <span className="text-xs text-slate-400 font-medium">{ACHIEVEMENTS.filter(a => a.earned).length}/{ACHIEVEMENTS.length}</span>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="grid grid-cols-2 gap-2">
+                    {ACHIEVEMENTS.map((badge) => (
+                      <div
+                        key={badge.id}
+                        className={`flex items-center gap-2 p-2.5 rounded-lg ${badge.bg} ${!badge.earned ? 'opacity-40' : ''}`}
+                      >
+                        <badge.icon className={`h-4 w-4 ${badge.color} flex-shrink-0`} />
+                        <span className={`text-xs font-semibold ${badge.earned ? 'text-slate-700' : 'text-slate-400'} leading-tight`}>{badge.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-sm border-l-4 border-l-amber-400">
+                <CardContent className="p-4">
+                  <div className="flex gap-3">
+                    <div className="p-2 bg-amber-50 rounded-full h-fit">
+                      <Lightbulb className="h-4 w-4 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-amber-700 uppercase tracking-wide mb-1">EV Tip of the Day</p>
+                      <p className="text-sm text-slate-600 leading-relaxed">{evTip}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
         </div>
       </div>
