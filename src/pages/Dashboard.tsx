@@ -850,7 +850,17 @@ export function Dashboard() {
               <div className="animate-in fade-in slide-in-from-bottom-4">
                 <Card className="shadow-sm">
                   <CardHeader className="pb-2 p-4">
-                    <CardTitle className="text-sm font-bold text-slate-800">Community Feed</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-bold text-slate-800">Community Feed</CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-blue-600 text-xs h-7 px-2"
+                        onClick={() => navigate('/community')}
+                      >
+                        See all <ChevronRight className="h-3 w-3 ml-0.5" />
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
                     <div className="max-h-[400px] overflow-y-auto relative scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">

@@ -408,6 +408,15 @@ export function clearFeatureOverrides(): void {
 }
 
 /**
+ * Moderator check — hardcoded emails for now (no Cloud Functions needed)
+ */
+const MODERATOR_EMAILS = ['anja687gutierrez@gmail.com'];
+
+export function isModerator(email?: string | null): boolean {
+  return !!email && MODERATOR_EMAILS.includes(email);
+}
+
+/**
  * Get tier display name
  */
 export function getTierDisplayName(tier: MembershipTier): string {

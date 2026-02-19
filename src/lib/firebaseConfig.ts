@@ -19,10 +19,16 @@ import {
   where,
   orderBy,
   limit,
+  onSnapshot,
+  arrayUnion,
+  arrayRemove,
+  increment,
   Firestore,
   Timestamp,
   serverTimestamp
 } from 'firebase/firestore';
+// TODO: Enable when upgrading to Blaze plan for image uploads
+// import { getStorage, FirebaseStorage } from 'firebase/storage';
 import {
   getAuth,
   Auth,
@@ -59,6 +65,7 @@ const initFirebase = () => {
   }
   db = getFirestore(app);
   auth = getAuth(app);
+  // storage = getStorage(app); // TODO: Enable with Blaze plan
 
   // Initialize Gemini AI via Firebase AI Logic
   try {
