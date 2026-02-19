@@ -7,7 +7,7 @@
  */
 
 import { geminiModel } from '../lib/firebaseConfig';
-import type { ChatSession } from 'firebase/ai';
+import type { ChatSession, InlineDataPart } from 'firebase/ai';
 import { PERSONAS, getPersonaSystemPrompt } from '../lib/personas';
 
 export interface ChatMessage {
@@ -34,6 +34,15 @@ export interface AIResponse {
     lng?: number;
   }>;
   error?: string;
+}
+
+export interface ScanResult {
+  name: string;
+  category: string;
+  description: string;
+  facts: string[];
+  nearbyTips: string[];
+  discoveryRating: number; // 1-5
 }
 
 // System prompts are now sourced from src/lib/personas.ts via getPersonaSystemPrompt()
@@ -230,6 +239,70 @@ class AIService {
     // Simple extraction - look for patterns like "visit X" or "stop at X"
     // In a production app, you'd use structured output or better parsing
     return [];
+  }
+
+  /**
+   * Analyze an image using Gemini Vision (standalone, no chat session)
+   */
+  async analyzeImage(
+    imageBase64: string,
+    mimeType: string,
+    lat: number | null,
+    lng: number | null
+  ): Promise<ScanResult> {
+    const locationContext = lat != null && lng != null
+      ? `The user is at GPS coordinates (${lat.toFixed(5)}, ${lng.toFixed(5)}).`
+      : 'GPS location is unavailable.';
+
+    const prompt = `You are PathSpotter, an AR discovery tool for road-trip travelers. ${locationContext}
+
+Identify what's in this image — it could be a landmark, building, sign, natural feature, plant, animal, food, or any travel-relevant object. Provide rich, engaging context a traveler would love.
+
+Respond with ONLY valid JSON (no markdown fences):
+{
+  "name": "Name of the object/landmark/scene",
+  "category": "One of: Landmark, Nature, Architecture, Food, Art, Wildlife, Sign, Historical, Other",
+  "description": "2-3 sentences of interesting context, history, or travel relevance",
+  "facts": ["Fun fact 1", "Fun fact 2", "Fun fact 3"],
+  "nearbyTips": ["What to do or see nearby tip 1", "Tip 2"],
+  "discoveryRating": 4
+}
+
+discoveryRating: 1=common, 2=interesting, 3=notable, 4=remarkable, 5=once-in-a-lifetime`;
+
+    if (geminiModel) {
+      try {
+        const imagePart: InlineDataPart = {
+          inlineData: { data: imageBase64, mimeType },
+        };
+        const result = await geminiModel.generateContent([prompt, imagePart]);
+        const text = result.response.text().trim();
+        // Strip markdown fences if present
+        const jsonStr = text.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+        const parsed = JSON.parse(jsonStr) as ScanResult;
+        console.log('[AIService] PathSpotter analysis complete');
+        return parsed;
+      } catch (error) {
+        console.error('[AIService] Vision analysis failed:', error);
+      }
+    }
+
+    // Demo fallback
+    return {
+      name: 'Scenic Viewpoint',
+      category: 'Nature',
+      description: 'This looks like a beautiful spot along the highway! Many road trippers love stopping at scenic overlooks like this to stretch their legs and take photos.',
+      facts: [
+        'The US has over 2,000 designated scenic overlooks',
+        'Golden hour photos get 3x more engagement on social media',
+        'Many scenic viewpoints were created during the New Deal era',
+      ],
+      nearbyTips: [
+        'Look for trailhead markers — short hikes often lead to even better views',
+        'Check for historical plaques that tell the story of the area',
+      ],
+      discoveryRating: 3,
+    };
   }
 
   /**

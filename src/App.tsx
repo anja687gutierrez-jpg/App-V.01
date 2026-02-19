@@ -22,6 +22,7 @@ const TripDetails = React.lazy(() => import('@/pages/TripDetails').then(m => ({ 
 const NavigationMode = React.lazy(() => import('@/pages/NavigationMode').then(m => ({ default: m.NavigationMode })));
 const VehicleHealth = React.lazy(() => import('@/pages/VehicleHealth').then(m => ({ default: m.VehicleHealth })));
 const CommunityFeed = React.lazy(() => import('@/pages/CommunityFeed').then(m => ({ default: m.CommunityFeed })));
+const PathScanner = React.lazy(() => import('@/pages/PathScanner').then(m => ({ default: m.PathScanner })));
 
 function PageLoader() {
   return (
@@ -68,6 +69,7 @@ function AuthGate() {
           <Route path="/navigation" element={<NavigationMode />} />
           <Route path="/vehicle" element={<VehicleHealth />} />
           <Route path="/community" element={<CommunityFeed />} />
+          <Route path="/scan" element={<PathScanner />} />
           <Route path="/favorites" element={<Favorites />} />
 
           {/* User & Settings */}

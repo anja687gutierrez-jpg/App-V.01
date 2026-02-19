@@ -15,6 +15,7 @@ import {
   Navigation,
   Star,
   Car,
+  Camera,
   ChevronLeft,
   ChevronRight,
   LogOut
@@ -33,6 +34,7 @@ const navigation = [
   { name: 'Discover POIs', icon: MapPin, href: '/discover' },
   { name: 'AI Guide', icon: MessageCircle, href: '/guide', badge: 'AI' },
   { name: 'Community', icon: Users, href: '/community' },
+  { name: 'PathSpotter', icon: Camera, href: '/scan', badge: 'New' },
   { name: 'Vehicle', icon: Car, href: '/vehicle' },
   { name: 'My Trips', icon: History, href: '/trips' },
   { name: 'Favorites', icon: Star, href: '/favorites' },
